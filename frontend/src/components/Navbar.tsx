@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Satellite } from 'lucide-react';
 import { useState } from 'react';
 import clsx from 'clsx';
+import ThemeToggle from './ThemeToggle';
 
 const NAV_LINKS = [
   { to: '/', label: 'Orbital Command' },
@@ -25,7 +26,7 @@ export default function Navbar() {
               <Satellite className="h-5 w-5 text-primary-400" />
             </div>
             <span className="font-headline-lg font-bold text-xl md:text-2xl tracking-wider text-white">
-              AgriProf<span className="text-primary-container">.AI</span>
+              AgriProof<span className="text-primary-400">.AI</span>
             </span>
           </Link>
 
@@ -40,11 +41,11 @@ export default function Navbar() {
                   className={clsx(
                     'px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-1.5',
                     isActive
-                      ? 'text-primary bg-white/10 border-b-2 border-primary shadow-[0_0_15px_rgba(0,163,255,0.15)] font-semibold'
+                      ? 'text-primary-400 bg-white/10 border-b-2 border-primary-400 shadow-[0_0_15px_rgba(0,163,255,0.15)] font-semibold'
                       : 'text-slate-300 hover:text-white hover:bg-white/5',
                   )}
                 >
-                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />}
+                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" />}
                   {label}
                 </Link>
               );
@@ -53,6 +54,7 @@ export default function Navbar() {
 
           {/* Right Action */}
           <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
             <Link
               to="/register"
               className="neon-button px-4 py-2 rounded-lg font-label-caps text-xs font-bold uppercase tracking-wider flex items-center gap-2"
@@ -63,7 +65,8 @@ export default function Navbar() {
           </div>
 
           {/* Mobile toggle */}
-          <div className="md:hidden">
+          <div className="flex items-center gap-2 md:hidden">
+            <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="inline-flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 focus:outline-none"
@@ -85,7 +88,7 @@ export default function Navbar() {
               className={clsx(
                 'block px-3 py-2 rounded-lg text-base font-medium transition-colors',
                 location.pathname === to
-                  ? 'bg-primary-500/20 text-primary font-semibold'
+                  ? 'bg-primary-500/20 text-primary-400 font-semibold'
                   : 'text-slate-300 hover:text-white hover:bg-white/5',
               )}
             >
