@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Polygon, CircleMarker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, RotateCcw, Sparkles } from 'lucide-react';
+import { MapPin, RotateCcw, Sparkles, Satellite, Layers } from 'lucide-react';
 
 interface FarmMapProps {
   onChange?: (coords: number[][]) => void;
   existingBoundary?: number[][];
   readOnly?: boolean;
+  damageSeverity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  showDamageOverlay?: boolean;
 }
 
 // Map Click Handler for drawing polygon vertices
@@ -22,9 +24,16 @@ function MapClickHandler({ onAddPoint, disabled }: { onAddPoint: (lat: number, l
   return null;
 }
 
-export default function FarmMap({ onChange, existingBoundary, readOnly = false }: FarmMapProps) {
+export default function FarmMap({
+  onChange,
+  existingBoundary,
+  readOnly = false,
+  damageSeverity = 'HIGH',
+  showDamageOverlay = false
+}: FarmMapProps) {
   const [points, setPoints] = useState<number[][]>(existingBoundary || []);
   const [mapReady, setMapReady] = useState(false);
+  const [baseMap, setBaseMap] = useState<'satellite' | 'dark'>('satellite');
 
   useEffect(() => {
     setMapReady(true);
@@ -83,79 +92,139 @@ export default function FarmMap({ onChange, existingBoundary, readOnly = false }
 
   if (!mapReady) return <div className="h-full w-full bg-dark-800 animate-pulse rounded-xl" />;
 
+  const polygonColor = showDamageOverlay
+    ? (damageSeverity === 'CRITICAL' || damageSeverity === 'HIGH' ? '#ef4444' : '#eab308')
+    : '#10b981';
+
   return (
     <div className="h-full w-full rounded-xl overflow-hidden border border-dark-700 shadow-md relative z-0 flex flex-col min-h-[420px]">
-      {/* Interactive Controls Overlay for Farmer */}
-      {!readOnly && (
-        <div className="absolute top-3 left-3 z-[1000] bg-dark-900/90 backdrop-blur border border-dark-600 rounded-lg p-2 flex items-center gap-2 text-xs shadow-xl">
-          <div className="flex items-center gap-1 text-slate-300 font-medium px-1">
-            <MapPin className="w-3.5 h-3.5 text-primary-400" />
-            <span>Click map to add corners ({points.length} vertices)</span>
-          </div>
-
-          <div className="h-4 w-[1px] bg-dark-600" />
-
-          {/* Quick Presets for Demo */}
+      {/* Top Map Layer Switcher & Registration Controls */}
+      <div className="absolute top-3 left-3 z-[1000] flex flex-wrap items-center gap-2">
+        {/* Layer Mode Toggle */}
+        <div className="bg-dark-900/90 backdrop-blur border border-dark-600 rounded-lg p-1 flex items-center gap-1 shadow-xl">
           <button
             type="button"
-            onClick={() => loadPreset('punjab')}
-            className="px-2 py-1 bg-dark-800 hover:bg-dark-700 text-slate-300 hover:text-white rounded border border-dark-600 flex items-center gap-1 transition-colors"
+            onClick={() => setBaseMap('satellite')}
+            className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-all ${
+              baseMap === 'satellite'
+                ? 'bg-primary-600 text-white shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
           >
-            <Sparkles className="w-3 h-3 text-emerald-400" /> Punjab Preset
+            <Satellite className="w-3.5 h-3.5" />
+            <span>Real-Time Satellite</span>
           </button>
-
           <button
             type="button"
-            onClick={() => loadPreset('kerala')}
-            className="px-2 py-1 bg-dark-800 hover:bg-dark-700 text-slate-300 hover:text-white rounded border border-dark-600 transition-colors"
+            onClick={() => setBaseMap('dark')}
+            className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-all ${
+              baseMap === 'dark'
+                ? 'bg-primary-600 text-white shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
           >
-            Kerala Preset
+            <Layers className="w-3.5 h-3.5" />
+            <span>Dark Carto</span>
           </button>
+        </div>
 
-          {points.length > 0 && (
+        {/* Interactive Controls for Farm Registration */}
+        {!readOnly && (
+          <div className="bg-dark-900/90 backdrop-blur border border-dark-600 rounded-lg p-1.5 flex items-center gap-2 text-xs shadow-xl">
+            <div className="flex items-center gap-1 text-slate-300 font-medium px-1">
+              <MapPin className="w-3.5 h-3.5 text-primary-400" />
+              <span>Click to add corners ({points.length} pts)</span>
+            </div>
+
+            <div className="h-4 w-[1px] bg-dark-600" />
+
+            {/* Quick Presets for Demo */}
             <button
               type="button"
-              onClick={handleReset}
-              className="px-2 py-1 bg-red-950/60 hover:bg-red-900/80 text-red-300 rounded border border-red-800 flex items-center gap-1 transition-colors"
+              onClick={() => loadPreset('punjab')}
+              className="px-2 py-1 bg-dark-800 hover:bg-dark-700 text-slate-300 hover:text-white rounded border border-dark-600 flex items-center gap-1 transition-colors"
             >
-              <RotateCcw className="w-3 h-3" /> Clear
+              <Sparkles className="w-3 h-3 text-emerald-400" /> Punjab Preset
             </button>
-          )}
-        </div>
-      )}
 
+            <button
+              type="button"
+              onClick={() => loadPreset('kerala')}
+              className="px-2 py-1 bg-dark-800 hover:bg-dark-700 text-slate-300 hover:text-white rounded border border-dark-600 transition-colors"
+            >
+              Kerala Preset
+            </button>
+
+            {points.length > 0 && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="px-2 py-1 bg-red-950/60 hover:bg-red-900/80 text-red-300 rounded border border-red-800 flex items-center gap-1 transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" /> Clear
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Map Body */}
       <MapContainer center={center} zoom={points.length > 0 ? 15 : 13} className="h-full w-full flex-1">
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        />
+        {baseMap === 'satellite' ? (
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            maxZoom={19}
+          />
+        ) : (
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          />
+        )}
 
         <MapClickHandler onAddPoint={handleAddPoint} disabled={readOnly} />
 
-        {/* Drawn Markers */}
+        {/* Drawn Vertex Markers */}
         {points.map((pt, idx) => (
           <CircleMarker
             key={`pt-${idx}`}
             center={[pt[0], pt[1]]}
-            radius={5}
-            pathOptions={{ color: '#10b981', fillColor: '#34d399', fillOpacity: 0.9 }}
+            radius={6}
+            pathOptions={{
+              color: '#ffffff',
+              fillColor: polygonColor,
+              fillOpacity: 1.0,
+              weight: 2
+            }}
           />
         ))}
 
-        {/* Polygon */}
+        {/* Bounding Polygon Area */}
         {points.length >= 3 && (
           <Polygon
             positions={points as L.LatLngTuple[]}
             pathOptions={{
-              color: '#10b981',
-              fillColor: '#10b981',
-              fillOpacity: 0.25,
-              weight: 2,
-              dashArray: readOnly ? undefined : '4, 4'
+              color: polygonColor,
+              fillColor: polygonColor,
+              fillOpacity: showDamageOverlay ? 0.35 : 0.20,
+              weight: 3,
+              dashArray: readOnly ? undefined : '5, 5'
             }}
           />
         )}
       </MapContainer>
+
+      {/* Real-Time Analysis & Satellite Metadata Watermark */}
+      <div className="absolute bottom-2 left-2 right-2 z-[1000] bg-dark-900/90 backdrop-blur border border-dark-700/80 px-3.5 py-1.5 rounded-xl flex items-center justify-between text-xs font-mono text-slate-300 pointer-events-none">
+        <span className="flex items-center gap-1.5 text-primary-400">
+          <Satellite className="w-3.5 h-3.5" />
+          <span>REAL-TIME EO SATELLITE CAPTURE (3m GSD)</span>
+        </span>
+        <span className="text-slate-400">
+          Center: {center[0].toFixed(4)}°N, {center[1].toFixed(4)}°E
+        </span>
+      </div>
     </div>
   );
 }
