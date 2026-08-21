@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, Claim, Farm, VerificationResult } from '../lib/api';
 import ZKProofCard from '../components/ZKProofCard';
-import { Copy, FileJson, RefreshCw, Hash, Database, ShieldCheck, ShieldX, Printer, CheckCircle, Award, Satellite } from 'lucide-react';
+import { Copy, FileJson, RefreshCw, Hash, Database, ShieldCheck, ShieldX, Printer, CheckCircle, Award, Satellite, Sparkles, Bot, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export default function ClaimVerificationPage() {
@@ -12,6 +12,7 @@ export default function ClaimVerificationPage() {
   const [verifying, setVerifying]                 = useState(false);
   const [verifyResult, setVerifyResult]           = useState<VerificationResult | null>(null);
   const [showJson, setShowJson]                   = useState(false);
+  const [showAiBreakdown, setShowAiBreakdown]     = useState(true);
 
   const fetchClaim = async () => {
     if (!claimId) return;
@@ -122,6 +123,67 @@ export default function ClaimVerificationPage() {
           </div>
         </div>
       )}
+
+      {/* AI Farmer-Friendly Claim Explanation Card */}
+      <div className="mb-8 bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-5 shadow-xl print:hidden relative overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                AI Scenario & Claim Breakdown for the Farmer
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Simplified Language
+                </span>
+              </h3>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowAiBreakdown(!showAiBreakdown)}
+            className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-medium transition-colors"
+          >
+            {showAiBreakdown ? 'Hide Breakdown' : 'Show Breakdown'}
+            {showAiBreakdown ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+
+        {showAiBreakdown && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1 text-xs sm:text-sm">
+            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 space-y-1.5">
+              <span className="font-bold text-emerald-400 text-xs uppercase tracking-wider block">
+                1. Why Was This Triggered?
+              </span>
+              <p className="text-slate-300 leading-relaxed">
+                {claim.eligible
+                  ? `Satellite scans detected that vegetative vitality dropped significantly past the policy threshold (exceeding 30% drop or 20% predicted yield loss).`
+                  : `Current satellite readings did not drop below the policy loss threshold.`}
+              </p>
+            </div>
+
+            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 space-y-1.5">
+              <span className="font-bold text-blue-400 text-xs uppercase tracking-wider block">
+                2. What Is Zero-Knowledge Proof?
+              </span>
+              <p className="text-slate-300 leading-relaxed">
+                It mathematically proves your crop suffered genuine damage to the insurer without revealing your confidential farm coordinates, trade secrets, or personal identity.
+              </p>
+            </div>
+
+            <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 space-y-1.5">
+              <span className="font-bold text-purple-400 text-xs uppercase tracking-wider block">
+                3. Instant Payout Execution
+              </span>
+              <p className="text-slate-300 leading-relaxed">
+                {claim.eligible
+                  ? `Block #${claim.block_index} is permanently verified on the ledger. Payout is automatically approved with zero paper claims or delayed adjusters.`
+                  : `Your policy remains actively monitored for subsequent satellite orbits.`}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Screen Interactive Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 print:hidden">

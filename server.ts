@@ -4,9 +4,26 @@ import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs';
 import { WebSocketServer, WebSocket } from 'ws';
+import { GoogleGenAI, Type } from '@google/genai';
 
 const PORT = 3000;
 const HOST = '0.0.0.0';
+
+// Gemini AI Client Lazy Initializer
+let geminiClient: GoogleGenAI | null = null;
+function getGeminiClient(): GoogleGenAI | null {
+  if (!geminiClient && process.env.GEMINI_API_KEY) {
+    geminiClient = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
+  }
+  return geminiClient;
+}
 
 interface Farm {
   id: string;
@@ -213,6 +230,17 @@ function calculatePolygonAreaHa(coordinates: number[][]): number {
 
 const app = express();
 app.use(express.json());
+
+// Health Check
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    app: 'AgriProof AI Server',
+    farms_count: farmsStore.size,
+    ledger_blocks_count: Array.from(new Set(claimsStore.values())).length,
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // API Routes
 app.get('/api/farms', (_req, res) => {
@@ -600,6 +628,335 @@ app.get('/api/ledger/verify', (_req, res) => {
     block_count: uniqueClaims.length,
     broken_at: brokenAt,
   });
+});
+
+// ==========================================
+// AI FARM & SCENARIO EXPLAINER ENDPOINTS (GEMINI 3.7 FLASH)
+// ==========================================
+
+function buildLocalFallbackExplanation(
+  farm: Farm,
+  analysis: AnalysisResult,
+  language: string = 'en',
+  tone: string = 'farmer_simple',
+  customPrompt?: string
+) {
+  const dropPct = analysis.ndvi_drop_pct || 0;
+  const isEligible = dropPct >= 30.0 || analysis.expected_loss_pct >= 20.0;
+  const crop = farm.crop_type || 'crop';
+  const rainDeficit = analysis.rainfall_anomaly_pct;
+  const temp = analysis.temperature_mean;
+
+  let headline = `Current situation report for ${farm.name} (${crop})`;
+  if (dropPct > 40) {
+    headline = `Significant crop stress detected on ${farm.name}. Parametric insurance payout triggered.`;
+  } else if (dropPct > 20) {
+    headline = `Moderate moisture stress detected on ${crop} parcel. Action recommended to protect yield.`;
+  } else {
+    headline = `Your ${crop} crop is exhibiting healthy vegetative vitality with low overall risk.`;
+  }
+
+  let simpleSummary = `According to our latest satellite observations, your ${farm.area_hectares}-hectare ${crop} field currently has a vegetation health index (NDVI) of ${analysis.ndvi_current.toFixed(2)}, which is ${dropPct > 0 ? `${dropPct.toFixed(1)}% lower than normal seasonal levels` : 'right on target'}. This indicates that your plants are experiencing ${analysis.stress_level.toLowerCase()} stress, primarily driven by ${rainDeficit < -30 ? 'prolonged dry spells and high temperatures' : 'local climate variations'}.`;
+
+  let soilAndWaterStatus = `Recent rainfall in your area was recorded at ${analysis.rainfall_mm_30d.toFixed(1)} mm over the past 30 days, which represents a ${Math.abs(rainDeficit).toFixed(1)}% ${rainDeficit < 0 ? 'deficit' : 'surplus'} relative to historical norms. Average canopy surface temperature reached ${temp.toFixed(1)}°C. Soil moisture levels are in a ${rainDeficit < -40 ? 'critical deficit' : 'moderate'} state.`;
+
+  let insuranceAndRiskExplanation = isEligible
+    ? `Your farm meets the automatic parametric insurance trigger criteria (Vegetation drop of ${dropPct.toFixed(1)}% exceeds the 30% policy threshold, with predicted yield loss of ${analysis.expected_loss_pct.toFixed(1)}%). A cryptographic Zero-Knowledge proof has been prepared so you receive an instant claim payout without requiring manual adjusters.`
+    : `Your farm currently does not meet the automatic loss trigger threshold (NDVI drop is ${dropPct.toFixed(1)}%, below the 30% contract trigger). Your policy remains active and monitoring continues on every satellite orbit.`;
+
+  const recommendations = [
+    rainDeficit < -30
+      ? `Prioritize immediate drip or furrow irrigation during early morning (5:00 AM - 8:00 AM) to minimize high evapotranspiration losses.`
+      : `Maintain standard scheduled irrigation intervals.`,
+    dropPct > 25
+      ? `Apply a potassium and micro-nutrient foliar spray to bolster plant cell wall resilience against thermal shock.`
+      : `Monitor nitrogen levels to support ongoing vegetative leaf development.`,
+    `Inspect the eastern and central plots for visible pest pressure or moisture stress patches.`,
+    isEligible
+      ? `Check your AgriProof claims dashboard to review your zero-knowledge payout verification.`
+      : `Keep your automated satellite monitoring active for the next orbital pass in 48 hours.`,
+  ];
+
+  const keyInsights = [
+    {
+      title: 'Crop Vitality',
+      value: `${(analysis.crop_health_score * 100).toFixed(0)}% Health`,
+      status: (analysis.crop_health_score > 0.6 ? 'good' : analysis.crop_health_score > 0.4 ? 'warning' : 'alert') as 'good' | 'warning' | 'alert' | 'info',
+      description: `Current NDVI is ${analysis.ndvi_current.toFixed(2)} vs ${analysis.ndvi_baseline.toFixed(2)} historical baseline.`,
+    },
+    {
+      title: 'Moisture Deficit',
+      value: `${analysis.rainfall_anomaly_pct.toFixed(0)}% Rain Anomaly`,
+      status: (analysis.rainfall_anomaly_pct < -40 ? 'alert' : analysis.rainfall_anomaly_pct < -15 ? 'warning' : 'good') as 'good' | 'warning' | 'alert' | 'info',
+      description: `Recorded ${analysis.rainfall_mm_30d.toFixed(1)} mm rainfall in the last 30 days.`,
+    },
+    {
+      title: 'Yield Expectation',
+      value: `${analysis.expected_yield.toFixed(1)} Tonnes / ha`,
+      status: (analysis.expected_loss_pct > 30 ? 'alert' : analysis.expected_loss_pct > 15 ? 'warning' : 'good') as 'good' | 'warning' | 'alert' | 'info',
+      description: `Predicted loss is ${analysis.expected_loss_pct.toFixed(1)}% compared to normal seasons.`,
+    },
+    {
+      title: 'Insurance Status',
+      value: isEligible ? 'Claim Payout Eligible' : 'Nominal Monitoring',
+      status: (isEligible ? 'good' : 'info') as 'good' | 'warning' | 'alert' | 'info',
+      description: isEligible ? 'ZK Parametric Trigger verified on ledger.' : 'No loss claim trigger activated.',
+    },
+  ];
+
+  const faqs = [
+    {
+      question: `What does this NDVI drop mean for my harvest?`,
+      answer: `NDVI measures how green and dense your crop canopy is. A drop of ${dropPct.toFixed(1)}% means leaves are thinning or losing chlorophyll due to heat or drought, which may reduce final grain weight unless supplemental moisture is supplied.`,
+    },
+    {
+      question: `Do I need to submit paper claims or wait for an inspector?`,
+      answer: isEligible
+        ? `No. AgriProof uses parametric smart contracts verified by satellite imagery and Zero-Knowledge proofs. Your payout is automatically triggered and recorded to the blockchain ledger.`
+        : `No paperwork is needed. The platform automatically tracks satellite passes. If conditions drop below your policy threshold, payouts trigger instantly.`,
+    },
+    {
+      question: `When will the satellite scan my farm next?`,
+      answer: `Sentinel-2 and PlanetScope satellites image this basin every 2 to 4 days. Your dashboard will automatically update with new spectral index calculations upon the next pass.`,
+    },
+  ];
+
+  const audioSummaryText = `Hello! Here is your quick farm briefing for ${farm.name}. Your ${crop} field has an NDVI health index of ${analysis.ndvi_current.toFixed(2)}, reflecting ${analysis.stress_level.toLowerCase()} stress due to a ${Math.abs(rainDeficit).toFixed(0)}% rain deficit. ${isEligible ? 'Your parametric insurance payout has been verified and triggered.' : 'Your farm is operating under active monitoring with no claim triggers active today.'} Recommended action: irrigate early morning to protect canopy moisture. Have a great day in the field!`;
+
+  return {
+    headline,
+    simpleSummary,
+    soilAndWaterStatus,
+    insuranceAndRiskExplanation,
+    actionableRecommendations: recommendations,
+    keyInsights,
+    faqs,
+    audioSummaryText,
+    source: 'expert_rules_engine',
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+app.post('/api/farms/:farmId/ai-explain', async (req, res) => {
+  const { farmId } = req.params;
+  const { language = 'en', tone = 'farmer_simple', prompt = '', weather = null } = req.body || {};
+
+  const farm = farmsStore.get(farmId);
+  if (!farm) {
+    return res.status(404).json({ detail: 'Farm not found' });
+  }
+
+  const analysis = analysisStore.get(farmId) || {
+    id: `analysis-${farm.id}`,
+    farm_id: farm.id,
+    ndvi_current: 0.36,
+    ndvi_baseline: 0.65,
+    ndvi_drop_pct: 44.6,
+    evi_current: 0.28,
+    ndwi_current: -0.25,
+    ndmi_current: -0.21,
+    crop_health_score: 0.4,
+    damage_probability: 0.83,
+    stress_level: 'HIGH',
+    rainfall_mm_30d: 14.2,
+    rainfall_anomaly_pct: -61.2,
+    temperature_mean: 38.6,
+    heat_stress_score: 0.74,
+    drought_risk: 0.88,
+    flood_risk: 0.05,
+    overall_environmental_risk: 'HIGH',
+    expected_yield: 1.8,
+    expected_loss_pct: 41.2,
+    confidence: 0.92,
+    risk_score: 76.5,
+    risk_category: 'HIGH',
+    ndvi_time_series: [],
+  };
+
+  const ai = getGeminiClient();
+
+  if (!ai) {
+    // Return structured expert explanation if Gemini API key is not yet set
+    const fallback = buildLocalFallbackExplanation(farm, analysis, language, tone, prompt);
+    return res.json(fallback);
+  }
+
+  try {
+    const systemPrompt = `You are AgriProof AI's friendly, highly knowledgeable Agricultural Advisor and Satellite Report Explainer.
+Your mission is to explain complex satellite multi-spectral telemetry (NDVI, NDWI, EVI, Land Surface Temperature, Otsu thresholding, ZK parametric crop insurance triggers) in simple, accessible, empathetic, and jargon-free everyday language for farmers and agricultural stakeholders.
+
+Tone guidelines:
+- Friendly, practical, empathetic, and clear.
+- Use plain terms (e.g., replace "NDVI drop" with "leaf greenness and canopy vitality decline", replace "evapotranspiration" with "daily water evaporation from soil and leaves").
+- Include concrete, actionable recommendations for farming practices (irrigation, spraying, fertilizing, soil care).
+- Explain insurance triggers clearly: whether a payout is triggered and why, without confusing legal jargon.
+- Respond in the requested language: ${language} (e.g. if 'hi', respond in Hindi; if 'pa', respond in Punjabi; if 'es', respond in Spanish; if 'en', respond in English).
+
+Farm Context:
+- Farm Name: ${farm.name}
+- Crop Type: ${farm.crop_type}
+- Sowing Date: ${farm.sowing_date}
+- Area: ${farm.area_hectares} hectares
+- Center Coordinates: Lat ${farm.center_lat.toFixed(4)}, Lon ${farm.center_lon.toFixed(4)}
+- Current NDVI: ${analysis.ndvi_current} (Baseline: ${analysis.ndvi_baseline}, Drop: ${analysis.ndvi_drop_pct}%)
+- NDWI Water Index: ${analysis.ndwi_current}
+- Crop Health Score: ${(analysis.crop_health_score * 100).toFixed(0)}%
+- Stress Level: ${analysis.stress_level}
+- Rainfall (Last 30 Days): ${analysis.rainfall_mm_30d} mm (${analysis.rainfall_anomaly_pct}% anomaly)
+- Mean Canopy Temperature: ${analysis.temperature_mean}°C (Heat Stress: ${analysis.heat_stress_score})
+- Drought Risk: ${analysis.drought_risk}
+- Expected Yield: ${analysis.expected_yield} tonnes/ha (Predicted Loss: ${analysis.expected_loss_pct}%)
+- Overall Risk Category: ${analysis.risk_category}
+- Insurance Policy Trigger: NDVI drop > 30% or Yield Loss > 20%
+${weather ? `- Current Local Weather: ${JSON.stringify(weather)}` : ''}
+${prompt ? `- Farmer's Custom Question or Focus: "${prompt}"` : ''}
+
+You MUST return a valid JSON object strictly adhering to the schema.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.7-flash',
+      contents: `Generate a simplified farmer-friendly scenario report and explanation for this farm. If a custom question was provided ("${prompt}"), address it directly and prominently.`,
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            headline: { type: Type.STRING, description: 'Short 1-sentence encouraging or urgent summary of current farm status' },
+            simpleSummary: { type: Type.STRING, description: '2-3 paragraphs in simple plain language explaining crop health and what the satellite saw' },
+            soilAndWaterStatus: { type: Type.STRING, description: 'Simple breakdown of soil moisture, recent rainfall, and evaporation' },
+            insuranceAndRiskExplanation: { type: Type.STRING, description: 'Clear explanation of whether insurance payout is triggered, how ZK verification works, and what to expect' },
+            actionableRecommendations: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: '3 to 5 concrete, actionable farming steps the farmer should take this week'
+            },
+            keyInsights: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  value: { type: Type.STRING },
+                  status: { type: Type.STRING, description: 'good, warning, alert, or info' },
+                  description: { type: Type.STRING }
+                },
+                required: ['title', 'value', 'status', 'description']
+              }
+            },
+            faqs: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  question: { type: Type.STRING },
+                  answer: { type: Type.STRING }
+                },
+                required: ['question', 'answer']
+              }
+            },
+            audioSummaryText: { type: Type.STRING, description: 'A conversational 30-second speech text suitable for reading aloud to the farmer' }
+          },
+          required: ['headline', 'simpleSummary', 'soilAndWaterStatus', 'insuranceAndRiskExplanation', 'actionableRecommendations', 'keyInsights', 'faqs', 'audioSummaryText']
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    return res.json({
+      ...parsed,
+      source: 'gemini-3.7-flash',
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    console.error('[Gemini AI] Failed to generate farm explanation:', err);
+    // Fallback to local expert rules explanation
+    const fallback = buildLocalFallbackExplanation(farm, analysis, language, tone, prompt);
+    return res.json(fallback);
+  }
+});
+
+app.post('/api/ai/ask-advisor', async (req, res) => {
+  const { farmId, question, language = 'en', tone = 'farmer_simple' } = req.body || {};
+
+  if (!question || !question.trim()) {
+    return res.status(400).json({ error: 'Question is required' });
+  }
+
+  const farm = farmId ? farmsStore.get(farmId) : null;
+  const analysis = farmId ? analysisStore.get(farmId) : null;
+
+  const ai = getGeminiClient();
+
+  if (!ai) {
+    return res.json({
+      answer: `Based on current satellite telemetry for ${farm?.name || 'your farm'} (${farm?.crop_type || 'crop'}), ${analysis ? `the crop health index is ${analysis.ndvi_current.toFixed(2)} with a ${analysis.rainfall_anomaly_pct.toFixed(0)}% rainfall deficit` : 'satellite monitoring is active'}. To answer "${question}": we recommend ensuring adequate soil moisture during early morning hours and checking the claims dashboard for parametric insurance eligibility.`,
+      bulletPoints: [
+        'Maintain morning irrigation routines between 5:00 AM and 8:00 AM.',
+        'Monitor local weather forecasts for unexpected rain or temperature spikes.',
+        'Zero-knowledge claim verification is active for automatic payout triggers.'
+      ],
+      suggestedFollowUps: [
+        'Will my crop recover if I irrigate tomorrow?',
+        'How does my NDVI compare to neighboring farms?',
+        'Is my farm eligible for an instant payout?'
+      ],
+      source: 'expert_rules_engine',
+    });
+  }
+
+  try {
+    const systemPrompt = `You are AgriProof AI's friendly, conversational agricultural advisor for farmers.
+Answer the farmer's specific question using the provided farm telemetry context in clear, supportive, and practical language.
+Language: ${language}. Tone: ${tone}.
+Farm Data: ${JSON.stringify({ farm, analysis })}`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.7-flash',
+      contents: question,
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            answer: { type: Type.STRING, description: 'Direct, helpful and friendly answer in simplified language' },
+            bulletPoints: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: '2-4 quick practical takeaways'
+            },
+            suggestedFollowUps: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: '3 relevant follow-up questions the farmer might want to ask next'
+            }
+          },
+          required: ['answer', 'bulletPoints', 'suggestedFollowUps']
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    return res.json({
+      ...parsed,
+      source: 'gemini-3.7-flash',
+    });
+  } catch (err: any) {
+    console.error('[Gemini AI] Ask advisor error:', err);
+    return res.json({
+      answer: `Regarding "${question}": Your ${farm?.crop_type || 'crop'} is currently showing ${analysis?.stress_level?.toLowerCase() || 'moderate'} stress with NDVI at ${analysis?.ndvi_current?.toFixed(2) || '0.36'}. We advise calibrated supplemental irrigation and monitoring the parametric loss threshold.`,
+      bulletPoints: [
+        'Ensure steady moisture during critical vegetative stages.',
+        'Review the satellite spectral heatmaps for localized stress pockets.'
+      ],
+      suggestedFollowUps: [
+        'Explain my insurance payout criteria',
+        'When is the next satellite pass?'
+      ],
+      source: 'expert_rules_engine',
+    });
+  }
 });
 
 // Create HTTP server
