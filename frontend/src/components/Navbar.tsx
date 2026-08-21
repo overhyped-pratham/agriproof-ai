@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { to: '/register', label: 'Register Farm' },
   { to: '/farms', label: 'My Farms' },
   { to: '/ledger', label: 'Claim Ledger' },
+  { to: '/insurer', label: 'Insurer Risk Pool' },
 ];
 
 export default function Navbar() {

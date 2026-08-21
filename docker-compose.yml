@@ -1,46 +1,84 @@
 version: '3.8'
 
 services:
-  # Optional PostgreSQL - app uses SQLite by default
-  # Uncomment and change DATABASE_URL in .env to use PostgreSQL
-  # postgres:
-  #   image: postgres:16-alpine
-  #   environment:
-  #     POSTGRES_DB: agriproof
-  #     POSTGRES_USER: agriproof
-  #     POSTGRES_PASSWORD: agriproof_secret
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
+  # ── PostgreSQL Database ──────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: agriproof
+      POSTGRES_USER: agriproof
+      POSTGRES_PASSWORD: agriproof_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agriproof -d agriproof"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
+  # ── FastAPI Backend ──────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
-      - ./models:/app/models
-      - ./circuits:/app/circuits
-      - ./data:/app/data
+      - ./backend:/app                    # Live reload source
+      - ./models:/app/../models           # ML model weights
+      - ./circuits:/app/../circuits       # ZK circuits
+      - ./data:/app/../data               # Demo data
+      - user_uploads:/app/storage/uploads          # Persistent user uploads
+      - analysis_results:/app/storage/results      # Pipeline result artifacts
+      - zk_proofs:/app/storage/zk_proofs           # ZK proof files
+      - static_results:/app/static/results         # Generated images/snapshots
     environment:
-      - DATABASE_URL=sqlite+aiosqlite:///./agriproof.db
-      - APP_ENV=development
+      - DATABASE_URL=postgresql+asyncpg://agriproof:agriproof_secret@postgres:5432/agriproof
+      - PLANET_USER_ID=${PLANET_USER_ID:-e3f35a9a-7155-4eed-9e38-0a590270e658}
+      - PLANET_API_KEY=${PLANET_API_KEY:-PLAK12bc61b3896a4b5fac1282d5cb8bb208}
+      - PLANET_BASE_URL=https://api.planet.com/data/v1
+      - SENTINEL_HUB_CLIENT_ID=${SENTINEL_HUB_CLIENT_ID:-}
+      - SENTINEL_HUB_CLIENT_SECRET=${SENTINEL_HUB_CLIENT_SECRET:-}
+      - SENTINEL_HUB_INSTANCE_ID=${SENTINEL_HUB_INSTANCE_ID:-}
+      - OPEN_METEO_BASE_URL=https://api.open-meteo.com/v1
+      - CIRCUITS_DIR=/app/../circuits
+      - APP_ENV=production
+      - STORAGE_DIR=/app/storage
+      - CORS_ORIGINS=["http://localhost:5173","http://localhost:3000","http://frontend:5173"]
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+  # ── React Frontend ──────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend/src:/app/src
+      - ./frontend/src:/app/src           # Live reload source
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=http://backend:8000
+    depends_on:
+      - backend
     command: npm run dev -- --host
 
-# volumes:
-#   postgres_data:
+# ── Named Volumes (persistent storage) ────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  user_uploads:
+    driver: local
+  analysis_results:
+    driver: local
+  zk_proofs:
+    driver: local
+  static_results:
+    driver: local

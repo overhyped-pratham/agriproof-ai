@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import farms, claims, ledger
+from app.api.routes import farms, claims, ledger, insurer, farmer_alerts
 from app.api.websocket import router as ws_router
 from app.database import init_db
 from app.config import get_settings
@@ -18,6 +18,13 @@ settings = get_settings()
 static_dir = Path(__file__).resolve().parent.parent / "static"
 static_dir.mkdir(parents=True, exist_ok=True)
 (static_dir / "results").mkdir(parents=True, exist_ok=True)
+
+# Ensure persistent storage directories exist
+storage_dir = Path(settings.storage_dir)
+storage_dir.mkdir(parents=True, exist_ok=True)
+settings.uploads_dir.mkdir(parents=True, exist_ok=True)
+settings.results_dir.mkdir(parents=True, exist_ok=True)
+settings.zk_proofs_dir.mkdir(parents=True, exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,10 +52,13 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+app.mount("/storage", StaticFiles(directory=str(storage_dir)), name="storage")
 
 app.include_router(farms.router, prefix="/api", tags=["Farms"])
 app.include_router(claims.router, prefix="/api", tags=["Claims"])
 app.include_router(ledger.router, prefix="/api", tags=["Ledger"])
+app.include_router(insurer.router, prefix="/api", tags=["Insurer"])
+app.include_router(farmer_alerts.router, prefix="/api", tags=["Farmer Alerts"])
 app.include_router(ws_router, tags=["Websocket"])
 
 @app.get("/health", tags=["Health"])

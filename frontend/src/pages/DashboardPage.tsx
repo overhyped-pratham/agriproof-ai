@@ -8,6 +8,7 @@ import WeatherRiskPanel from '../components/WeatherRiskPanel';
 import PipelineProgress from '../components/PipelineProgress';
 import AnalysisPipelineSnapshots from '../components/AnalysisPipelineSnapshots';
 import LandSatelliteAnalysis from '../components/LandSatelliteAnalysis';
+import FarmerAlertsDrawer from '../components/FarmerAlertsDrawer';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { api, Farm } from '../lib/api';
 
@@ -153,6 +154,9 @@ export default function DashboardPage() {
 
       {/* Satellite Land Surface & Crop Canopy Analysis Section */}
       {farmId && <LandSatelliteAnalysis farmId={farmId} />}
+
+      {/* Actionable Agronomy & Low-Bandwidth Alerts Drawer */}
+      {farmId && <FarmerAlertsDrawer farmId={farmId} />}
 
       {/* Multi-Spectral Processing Pipeline & Visual Snapshots Section */}
       <div className="bg-dark-800 rounded-2xl border border-dark-700 p-6 shadow-xl">

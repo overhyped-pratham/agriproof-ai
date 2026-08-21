@@ -7,13 +7,14 @@ import DashboardPage from './pages/DashboardPage'
 import SatelliteViewPage from './pages/SatelliteViewPage'
 import ClaimVerificationPage from './pages/ClaimVerificationPage'
 import LedgerPage from './pages/LedgerPage'
+import InsurerDashboardPage from './pages/InsurerDashboardPage'
 
 function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-dark-900 flex flex-col">
         <Navbar />
-        <main className="flex-1 w-full overflow-x-hidden">
+        <main className="flex-1 w-full overflow-x-hidden pt-16">
           <Routes>
             <Route path="/"                              element={<LandingPage />} />
             <Route path="/register"                      element={<RegisterFarmPage />} />
@@ -22,6 +23,7 @@ function App() {
             <Route path="/dashboard/:farmId/satellite"   element={<SatelliteViewPage />} />
             <Route path="/claim/:claimId"                element={<ClaimVerificationPage />} />
             <Route path="/ledger"                        element={<LedgerPage />} />
+            <Route path="/insurer"                       element={<InsurerDashboardPage />} />
           </Routes>
         </main>
       </div>

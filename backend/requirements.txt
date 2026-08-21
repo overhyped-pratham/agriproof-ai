@@ -18,3 +18,5 @@ geopandas==1.0.1
 pandas==2.2.3
 python-multipart==0.0.12
 websockets==13.1
+scikit-image>=0.22.0
+asyncpg==0.30.0

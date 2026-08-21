@@ -1,7 +1,8 @@
 import httpx
 from datetime import datetime, timedelta, date
 
-BASE_URL = "https://api.open-meteo.com/v1"
+FORECAST_BASE_URL = "https://api.open-meteo.com/v1/forecast"
+ARCHIVE_BASE_URL = "https://archive-api.open-meteo.com/v1/archive"
 
 CROP_TYPE_MAP = {
     "wheat": 0,
@@ -13,15 +14,34 @@ CROP_TYPE_MAP = {
 
 
 class WeatherRiskEngine:
-    async def fetch_weather_data(
+    async def fetch_recent_weather(
+        self,
+        lat: float,
+        lon: float,
+        past_days: int = 30
+    ) -> dict:
+        """Fetch recent weather data using Open-Meteo forecast API past_days parameter."""
+        params = {
+            "latitude": lat,
+            "longitude": lon,
+            "past_days": past_days,
+            "forecast_days": 0,
+            "daily": "precipitation_sum,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max",
+            "timezone": "auto",
+        }
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(FORECAST_BASE_URL, params=params)
+            resp.raise_for_status()
+            return resp.json().get("daily", {})
+
+    async def fetch_archive_weather(
         self,
         lat: float,
         lon: float,
         start_date: str,
         end_date: str
     ) -> dict:
-        """Fetch historical weather data from Open-Meteo archive API."""
-        url = f"{BASE_URL}/archive"
+        """Fetch historical baseline weather data from Open-Meteo archive API."""
         params = {
             "latitude": lat,
             "longitude": lon,
@@ -31,7 +51,7 @@ class WeatherRiskEngine:
             "timezone": "auto",
         }
         async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(url, params=params)
+            resp = await client.get(ARCHIVE_BASE_URL, params=params)
             resp.raise_for_status()
             return resp.json().get("daily", {})
 
@@ -41,16 +61,14 @@ class WeatherRiskEngine:
         drought/flood/heat risk scores based on actual observations.
         """
         today = date.today()
-        start = (today - timedelta(days=30)).isoformat()
-        end = today.isoformat()
 
-        # Historical baseline: same 30-day window 5 years ago
-        baseline_start = (today - timedelta(days=30 + 365 * 5)).isoformat()
-        baseline_end = (today - timedelta(days=365 * 5)).isoformat()
+        # Historical baseline: same 30-day window 2-5 years ago
+        baseline_start = (today - timedelta(days=30 + 365 * 2)).isoformat()
+        baseline_end = (today - timedelta(days=365 * 2)).isoformat()
 
         try:
-            recent = await self.fetch_weather_data(lat, lon, start, end)
-            baseline = await self.fetch_weather_data(lat, lon, baseline_start, baseline_end)
+            recent = await self.fetch_recent_weather(lat, lon, past_days=30)
+            baseline = await self.fetch_archive_weather(lat, lon, baseline_start, baseline_end)
         except Exception as e:
             print(f"[WeatherRiskEngine] Open-Meteo API error: {e}. Using fallback.")
             return self._fallback_scores()
