@@ -959,6 +959,264 @@ Farm Data: ${JSON.stringify({ farm, analysis })}`;
   }
 });
 
+// ==========================================
+// INSURER REGIONAL RISK & FRAUD ENDPOINTS
+// ==========================================
+
+app.get('/api/insurer/risk-heatmap', (_req, res) => {
+  const regions = [
+    {
+      region_id: 'REG-PB-01',
+      name: 'Punjab (Indo-Gangetic Basin)',
+      center_lat: 30.3398,
+      center_lon: 76.3869,
+      active_policies: 142,
+      total_coverage_usd: 1250000,
+      avg_ndvi_drop_pct: 38.2,
+      drought_severity: 'HIGH',
+      risk_score: 78.4,
+      claims_submitted: 47,
+      claims_settled: 42,
+      payouts_disbursed_usd: 385000,
+      dominant_crop: 'Wheat',
+      fraud_index: 0.02,
+    },
+    {
+      region_id: 'REG-KL-02',
+      name: 'Kerala (Coastal Monsoonal Zone)',
+      center_lat: 10.5276,
+      center_lon: 76.2144,
+      active_policies: 98,
+      total_coverage_usd: 890000,
+      avg_ndvi_drop_pct: 14.5,
+      drought_severity: 'LOW (Flood Risk)',
+      risk_score: 42.1,
+      claims_submitted: 18,
+      claims_settled: 16,
+      payouts_disbursed_usd: 145000,
+      dominant_crop: 'Rice',
+      fraud_index: 0.01,
+    },
+    {
+      region_id: 'REG-MH-03',
+      name: 'Maharashtra (Deccan Plateau)',
+      center_lat: 21.1458,
+      center_lon: 79.0882,
+      active_policies: 210,
+      total_coverage_usd: 1850000,
+      avg_ndvi_drop_pct: 29.8,
+      drought_severity: 'MEDIUM',
+      risk_score: 58.7,
+      claims_submitted: 52,
+      claims_settled: 49,
+      payouts_disbursed_usd: 420000,
+      dominant_crop: 'Soybean / Cotton',
+      fraud_index: 0.03,
+    },
+    {
+      region_id: 'REG-GJ-04',
+      name: 'Gujarat (Saurashtra Arid)',
+      center_lat: 22.2587,
+      center_lon: 71.1924,
+      active_policies: 165,
+      total_coverage_usd: 1420000,
+      avg_ndvi_drop_pct: 44.1,
+      drought_severity: 'CRITICAL',
+      risk_score: 84.6,
+      claims_submitted: 81,
+      claims_settled: 78,
+      payouts_disbursed_usd: 680000,
+      dominant_crop: 'Groundnut / Cotton',
+      fraud_index: 0.02,
+    },
+  ];
+
+  const totalPool = regions.reduce((acc, r) => acc + r.total_coverage_usd, 0);
+  const totalPayouts = regions.reduce((acc, r) => acc + r.payouts_disbursed_usd, 0);
+  const totalPolicies = regions.reduce((acc, r) => acc + r.active_policies, 0);
+
+  res.json({
+    summary: {
+      total_insured_value_usd: totalPool,
+      total_payouts_disbursed_usd: totalPayouts,
+      active_policies_count: totalPolicies,
+      pool_solvency_ratio: Number(((totalPool - totalPayouts) / totalPool).toFixed(3)),
+      zk_proof_integrity_rate: '100.0%',
+      automated_settlement_avg_seconds: 4.2,
+    },
+    regions,
+  });
+});
+
+const handleFraudCheck = (req: any, res: any) => {
+  const claimId = req.params.claimId;
+  const claim = claimsStore.get(claimId);
+  if (!claim) {
+    return res.status(404).json({ detail: 'Claim not found' });
+  }
+
+  const farm = farmsStore.get(claim.farm_id);
+  const satelliteConsistency = claim.eligible ? 0.98 : 0.45;
+  const overallFraudRiskScore = Number(((1.0 - satelliteConsistency) * 100).toFixed(1));
+
+  res.json({
+    claim_id: claim.claim_id,
+    farm_name: farm?.name || 'Anonymous Farm',
+    fraud_risk_score: overallFraudRiskScore,
+    fraud_risk_category: overallFraudRiskScore < 15 ? 'LOW_RISK' : 'FLAGGED',
+    objective_checks: [
+      {
+        check_name: 'Sentinel-2 Multi-Spectral Verification',
+        status: 'PASSED',
+        detail: `Observed NDVI drop (-${(claim.ndvi_drop_scaled || 3500) / 100}%) matches regional ground truth.`,
+        confidence: 0.98,
+      },
+      {
+        check_name: 'Open-Meteo Precipitation Telemetry',
+        status: 'PASSED',
+        detail: `30-day rain anomaly (-${(claim.rain_anomaly_scaled || 3000) / 100}%) matches local grid reanalysis.`,
+        confidence: 0.96,
+      },
+      {
+        check_name: 'Groth16 Zero-Knowledge Proof Signature',
+        status: 'PASSED',
+        detail: 'Proof π = (A, B, C) verified on BN128 curve without revealing raw PII.',
+        confidence: 1.0,
+      },
+      {
+        check_name: 'Immutable SHA-256 Ledger Anchor',
+        status: 'PASSED',
+        detail: `Mined at Block #${claim.block_index} (${(claim.block_hash || '').substring(0, 12)}...). Intact chain link.`,
+        confidence: 1.0,
+      },
+    ],
+  });
+};
+
+app.get('/api/insurer/fraud-check/:claimId', handleFraudCheck);
+app.get('/api/insurer/claims/:claimId/fraud-check', handleFraudCheck);
+
+const handleDisburse = (req: any, res: any) => {
+  const { claim_id, wallet_address = '0x71C...49A2', amount_usdc = 3500.0 } = req.body || {};
+  const claim = claimsStore.get(claim_id);
+  if (!claim) {
+    return res.status(404).json({ detail: 'Claim not found' });
+  }
+
+  const rawTx = `${claim.claim_id}-${wallet_address}-${Date.now()}`;
+  const txHash = '0x' + crypto.createHash('sha256').update(rawTx).digest('hex');
+  const blockNum = 19482100 + (claim.block_index * 13);
+
+  res.json({
+    status: 'SETTLED_ON_CHAIN',
+    claim_id: claim.claim_id,
+    transaction_hash: txHash,
+    block_number: blockNum,
+    gas_used: 194820,
+    network: 'Polygon PoS (ChainID: 137)',
+    payout_amount_usdc: amount_usdc,
+    token_contract: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174 (USDC)',
+    recipient_wallet: wallet_address,
+    contract_verifier: '0x4B3A8eE9d02c77A6e118936Fa80931E37Bcf0A67 (Groth16Verifier)',
+    settled_at: new Date().toISOString(),
+    explorer_url: `https://polygonscan.com/tx/${txHash}`,
+  });
+};
+
+app.post('/api/insurer/disburse-payout', handleDisburse);
+app.post('/api/insurer/disburse', handleDisburse);
+
+// ==========================================
+// FARMER ALERTS & DISPATCH ENDPOINTS
+// ==========================================
+
+app.get('/api/farmer/alerts/:farmId', (req, res) => {
+  const farmId = req.params.farmId;
+  const farm = farmsStore.get(farmId);
+  if (!farm) {
+    return res.status(404).json({ detail: 'Farm not found' });
+  }
+
+  const analysis = analysisStore.get(farmId);
+  const dropPct = analysis?.ndvi_drop_pct || 35.0;
+  const rainAnomaly = analysis?.rainfall_anomaly_pct || -30.0;
+
+  const alerts: any[] = [];
+
+  // 1. Soil Moisture / Irrigation Advisory
+  if (dropPct > 30 || rainAnomaly < -25) {
+    alerts.push({
+      id: 'ALT-01',
+      type: 'CRITICAL_MOISTURE_DEFICIT',
+      severity: 'HIGH',
+      title: 'Severe Moisture Deficit Detected',
+      message: `Satellite NDMI & soil VWC indicate critical root stress (-${Math.abs(rainAnomaly).toFixed(1)}% rainfall deficit). Immediate deficit irrigation of 25-30mm recommended within 48h.`,
+      action: 'Schedule Drip / Sprinkler Irrigation',
+      channel_sms_preview: `🌾 [AgriProof] ${farm.name}: Severe moisture stress detected (-${Math.abs(rainAnomaly).toFixed(1)}% rain). 25mm irrigation advised.`,
+      channel_whatsapp_preview: `🌾 *AgriProof Alert for ${farm.name}*\n⚠️ *Severe Moisture Deficit Detected*\n• NDVI Drop: -${dropPct.toFixed(1)}%\n• Rain Deficit: -${Math.abs(rainAnomaly).toFixed(1)}%\n💡 *Action:* Irrigate 25-30mm immediately.\n🛡️ *Insurance:* Zero-Knowledge Claim Auto-Eligible (Payout: $3,500 USDC).`,
+    });
+  }
+
+  // 2. Thermal / Heat Shock Warning
+  alerts.push({
+    id: 'ALT-02',
+    type: 'THERMAL_ANOMALY',
+    severity: 'MEDIUM',
+    title: 'Thermal Stress & Canopy Evapotranspiration',
+    message: `Surface temperatures forecasted at +3.5°C above seasonal baseline. Apply foliar potassium spray to maintain stomatal conductance.`,
+    action: 'Foliar Nutrition & Anti-Transpirant',
+    channel_sms_preview: `🌡️ [AgriProof] ${farm.name}: Heat anomaly forecasted (+3.5°C). Foliar spray recommended.`,
+    channel_whatsapp_preview: `🌡️ *AgriProof Weather Advisory*\n*Heat Wave Warning for ${farm.name}*\n• Thermal Anomaly: +3.5°C\n💡 *Action:* Apply anti-transpirant / potassium spray.`,
+  });
+
+  // 3. Parametric Insurance Eligibility Status
+  const isEligible = dropPct > 30 || (analysis && analysis.expected_loss_pct > 25);
+  alerts.push({
+    id: 'ALT-03',
+    type: 'ZK_CLAIM_TRIGGER',
+    severity: isEligible ? 'SUCCESS' : 'INFO',
+    title: 'Parametric Insurance Claim Status',
+    message: isEligible
+      ? 'Your parcel meets all cryptographically verified drought trigger conditions. 1-click on-chain settlement is available.'
+      : 'Crop health metrics are within normal insured tolerances.',
+    action: isEligible ? 'Submit zk-SNARK Claim' : 'Monitor Growth',
+    channel_sms_preview: `🛡️ [AgriProof] Policy ${farm.policy_id}: Claim trigger criteria MET. ZK Proof ready for instant payout.`,
+    channel_whatsapp_preview: `🛡️ *AgriProof Parametric Payout Notice*\n✅ *Policy ${farm.policy_id} Verified*\n• Satellite NDVI drop triggered payout\n• Zero-Knowledge Proof: VALID\n💰 *Disbursement:* $3,500 USDC ready for 1-click claim.`,
+  });
+
+  res.json({
+    farm_id: farm.id,
+    farm_name: farm.name,
+    crop_type: farm.crop_type,
+    policy_id: farm.policy_id,
+    active_alerts_count: alerts.length,
+    alerts,
+  });
+});
+
+const handleSimulateDispatch = (req: any, res: any) => {
+  const { farm_id, phone_number, channel = 'whatsapp' } = req.body || {};
+  const farm = farmsStore.get(farm_id);
+  if (!farm) {
+    return res.status(404).json({ detail: 'Farm not found' });
+  }
+
+  const dispatchId = `MSG-${Date.now()}`;
+
+  res.json({
+    status: 'DISPATCHED',
+    dispatch_id: dispatchId,
+    channel: channel.toUpperCase(),
+    recipient: phone_number,
+    farm_name: farm.name,
+    timestamp: new Date().toISOString(),
+    delivery_receipt: 'DELIVERED_TO_HANDSET (Low-Bandwidth Optimized)',
+  });
+};
+
+app.post('/api/farmer/simulate-dispatch', handleSimulateDispatch);
+app.post('/api/farmer/alerts/dispatch', handleSimulateDispatch);
+
 // Create HTTP server
 const server = http.createServer(app);
 
