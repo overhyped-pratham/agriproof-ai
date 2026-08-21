@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, Farm } from '../lib/api';
+import { offlineStorage } from '../lib/offlineStorage';
 import { Tractor, Plus, ChevronRight, Activity, Clock, Scale, List, CheckSquare, Square, ArrowRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { FarmCompareView } from '../components/FarmCompareView';
+import { OfflineStatusBanner } from '../components/OfflineStatusBanner';
 
 const STATUS_COLORS: Record<string, string> = {
   registered: 'bg-slate-500/20 text-slate-400 border-slate-600',
@@ -12,23 +14,40 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function FarmsListPage() {
-  const [farms, setFarms] = useState<Farm[]>([]);
+  const [farms, setFarms] = useState<Farm[]>(() => offlineStorage.getFarms() || []);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'compare'>('list');
   const [selectedFarmIds, setSelectedFarmIds] = useState<string[]>([]);
+  const [isFromCache, setIsFromCache] = useState<boolean>(false);
 
-  useEffect(() => {
+  const fetchFarms = () => {
+    setLoading(true);
     api.farms.list()
       .then(res => {
-        setFarms(res.data);
-        if (res.data.length >= 2) {
-          setSelectedFarmIds([res.data[0].id, res.data[1].id]);
-        } else if (res.data.length === 1) {
-          setSelectedFarmIds([res.data[0].id]);
+        if (res.data) {
+          setFarms(res.data);
+          setIsFromCache(false);
+          offlineStorage.saveFarms(res.data);
+          if (res.data.length >= 2 && selectedFarmIds.length === 0) {
+            setSelectedFarmIds([res.data[0].id, res.data[1].id]);
+          } else if (res.data.length === 1 && selectedFarmIds.length === 0) {
+            setSelectedFarmIds([res.data[0].id]);
+          }
         }
       })
-      .catch(err => console.error('[FarmsListPage] Failed to fetch farms:', err))
+      .catch(err => {
+        console.warn('[FarmsListPage] Network request failed, using cached list:', err);
+        const cached = offlineStorage.getFarms();
+        if (cached && cached.length > 0) {
+          setFarms(cached);
+          setIsFromCache(true);
+        }
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchFarms();
   }, []);
 
   const handleToggleSelect = (farmId: string, e: React.MouseEvent) => {
@@ -104,7 +123,16 @@ export default function FarmsListPage() {
         </div>
       </div>
 
-      {loading ? (
+      {/* Offline Status Alert */}
+      <div className="mb-6">
+        <OfflineStatusBanner
+          isFromCache={isFromCache}
+          isLoading={loading}
+          onRefresh={fetchFarms}
+        />
+      </div>
+
+      {loading && farms.length === 0 ? (
         <div className="text-center py-16 text-slate-400">Loading farms telemetry…</div>
       ) : farms.length === 0 ? (
         <div className="text-center py-16 bg-dark-800 rounded-xl border border-dark-700">

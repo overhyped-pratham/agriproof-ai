@@ -13,11 +13,12 @@ import LiveWeatherForecastWidget from '../components/LiveWeatherForecastWidget';
 import { FarmAIExplainer } from '../components/FarmAIExplainer';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { api, Farm } from '../lib/api';
+import { OfflineStatusBanner } from '../components/OfflineStatusBanner';
 
 export default function DashboardPage() {
   const { farmId }  = useParams<{ farmId: string }>();
   const navigate    = useNavigate();
-  const { analysis, loading, refetch } = useAnalysis(farmId);
+  const { analysis, loading, isFromCache, cachedTime, refetch } = useAnalysis(farmId);
   const [farm, setFarm] = useState<Farm | null>(null);
   const [isGeneratingClaim, setIsGeneratingClaim] = useState(false);
   const [pipelineRunning, setPipelineRunning]     = useState(false);
@@ -102,6 +103,14 @@ export default function DashboardPage() {
           <Map className="w-4 h-4 text-primary-400" /> View High-Res Satellite Map
         </Link>
       </div>
+
+      {/* Offline Satellite Telemetry Cache Status Banner */}
+      <OfflineStatusBanner
+        isFromCache={isFromCache}
+        cachedTime={cachedTime}
+        isLoading={loading}
+        onRefresh={refetch}
+      />
 
       {/* Multi-Spectral Processing Pipeline Visual Snapshots (Reference Diagram Feature) */}
       <div className="bg-dark-800/90 rounded-2xl border border-dark-700 p-6 shadow-xl backdrop-blur">
