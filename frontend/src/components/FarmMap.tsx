@@ -1,8 +1,22 @@
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Polygon, CircleMarker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, CircleMarker, Marker, Tooltip, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, RotateCcw, Sparkles, Satellite, Layers } from 'lucide-react';
+import { MapPin, RotateCcw, Sparkles, Satellite, Layers, Sprout, Calendar, Activity, Info } from 'lucide-react';
+
+export interface FarmPlot {
+  id: string;
+  name: string;
+  cropType: string;
+  plantingDate: string;
+  lat: number;
+  lng: number;
+  variety?: string;
+  targetYield?: string;
+  growthStage?: string;
+  health?: 'Optimal' | 'Mild Stress' | 'High Risk' | 'Degraded';
+  ndvi?: number;
+}
 
 interface FarmMapProps {
   onChange?: (coords: number[][]) => void;
@@ -10,6 +24,8 @@ interface FarmMapProps {
   readOnly?: boolean;
   damageSeverity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   showDamageOverlay?: boolean;
+  plots?: FarmPlot[];
+  onSelectPlot?: (plot: FarmPlot) => void;
 }
 
 // Map Click Handler for drawing polygon vertices
@@ -29,7 +45,9 @@ export default function FarmMap({
   existingBoundary,
   readOnly = false,
   damageSeverity = 'HIGH',
-  showDamageOverlay = false
+  showDamageOverlay = false,
+  plots = [],
+  onSelectPlot
 }: FarmMapProps) {
   const [points, setPoints] = useState<number[][]>(existingBoundary || []);
   const [mapReady, setMapReady] = useState(false);
@@ -213,6 +231,125 @@ export default function FarmMap({
             }}
           />
         )}
+
+        {/* Interactive Farm Plot Markers with Tooltips & Popups */}
+        {plots && plots.map((plot) => {
+          // Custom Leaflet DivIcon with badge and glowing pulse
+          const healthColor =
+            plot.health === 'Optimal' ? '#10b981' :
+            plot.health === 'Mild Stress' ? '#f59e0b' :
+            plot.health === 'High Risk' ? '#ef4444' : '#06b6d4';
+
+          const customPlotIcon = L.divIcon({
+            className: 'custom-farm-plot-marker',
+            html: `
+              <div style="position: relative; width: 34px; height: 34px; display: flex; items-center: center; justify-content: center; cursor: pointer;">
+                <div style="position: absolute; inset: 0; background: ${healthColor}; opacity: 0.3; border-radius: 9999px; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                <div style="position: relative; width: 30px; height: 30px; background: #0f172a; border: 2px solid ${healthColor}; border-radius: 9999px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+                  <span style="font-size: 14px;">🌱</span>
+                </div>
+              </div>
+            `,
+            iconSize: [34, 34],
+            iconAnchor: [17, 17],
+            popupAnchor: [0, -18],
+            tooltipAnchor: [0, -18]
+          });
+
+          return (
+            <Marker
+              key={plot.id}
+              position={[plot.lat, plot.lng]}
+              icon={customPlotIcon}
+              eventHandlers={{
+                click: () => {
+                  if (onSelectPlot) onSelectPlot(plot);
+                }
+              }}
+            >
+              {/* Interactive Tooltip: Displays Crop Type & Planting Date on Hover */}
+              <Tooltip direction="top" offset={[0, -14]} opacity={0.98} permanent={false}>
+                <div className="p-1 text-xs font-sans">
+                  <div className="font-bold text-emerald-400 flex items-center gap-1">
+                    <span>🌱</span> {plot.name}
+                  </div>
+                  <div className="text-slate-200 mt-0.5">
+                    <span className="font-semibold text-white">Crop:</span> {plot.cropType}
+                  </div>
+                  <div className="text-slate-300">
+                    <span className="font-semibold text-white">Planting Date:</span> {plot.plantingDate}
+                  </div>
+                  {plot.variety && (
+                    <div className="text-slate-400 text-[10px]">
+                      Variety: {plot.variety}
+                    </div>
+                  )}
+                </div>
+              </Tooltip>
+
+              {/* Rich Interactive Click Popup */}
+              <Popup className="farm-plot-popup">
+                <div className="p-2 min-w-[210px] text-slate-800 font-sans">
+                  <div className="flex items-center justify-between border-b pb-1.5 mb-2 border-slate-200">
+                    <h4 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                      <span className="text-base">🌾</span> {plot.name}
+                    </h4>
+                    <span 
+                      className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider"
+                      style={{ backgroundColor: healthColor }}
+                    >
+                      {plot.health || 'Optimal'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-slate-700">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium flex items-center gap-1">
+                        <Sprout className="w-3.5 h-3.5 text-emerald-600 inline" /> Crop Type:
+                      </span>
+                      <span className="font-bold text-slate-900">{plot.cropType}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-blue-600 inline" /> Planting Date:
+                      </span>
+                      <span className="font-semibold text-slate-800">{plot.plantingDate}</span>
+                    </div>
+
+                    {plot.variety && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Cultivar Variety:</span>
+                        <span className="text-slate-800">{plot.variety}</span>
+                      </div>
+                    )}
+
+                    {plot.growthStage && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Growth Stage:</span>
+                        <span className="text-slate-800">{plot.growthStage}</span>
+                      </div>
+                    )}
+
+                    {plot.ndvi !== undefined && (
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 font-mono">
+                        <span className="text-slate-500 font-medium">Live NDVI Index:</span>
+                        <span className="font-bold text-emerald-600">{plot.ndvi.toFixed(3)}</span>
+                      </div>
+                    )}
+
+                    {plot.targetYield && (
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Target Yield:</span>
+                        <span className="font-semibold text-slate-700">{plot.targetYield}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
 
       {/* Real-Time Analysis & Satellite Metadata Watermark */}

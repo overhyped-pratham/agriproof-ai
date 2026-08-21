@@ -173,25 +173,93 @@
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-dark-900;
+  background-color: #090d16;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-dark-700 rounded-full;
+  background-color: #1f293d;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-dark-800;
+  background-color: #111827;
 }
 
 /* Leaflet dark theme tweaks */
 .leaflet-container {
-  @apply bg-dark-900 z-0 !important;
+  background-color: #090d16 !important;
+  z-index: 0 !important;
 }
 .leaflet-bar a {
-  @apply !bg-dark-800 !text-slate-200 !border-dark-700 hover:!bg-dark-700 !important;
+  background-color: #111827 !important;
+  color: #e2e8f0 !important;
+  border-color: #1f293d !important;
+}
+.leaflet-bar a:hover {
+  background-color: #1f293d !important;
 }
 .leaflet-bar {
-  @apply !border-none !shadow-lg !important;
+  border: none !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
 }
 .leaflet-control-zoom-in, .leaflet-control-zoom-out {
-  @apply !bg-dark-800 !text-slate-200 hover:!bg-dark-700 !important;
+  background-color: #111827 !important;
+  color: #e2e8f0 !important;
+}
+.leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover {
+  background-color: #1f293d !important;
+}
+
+/* Print Stylesheet for Claim Document */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm 12mm 15mm 12mm;
+  }
+  
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  nav,
+  .no-print,
+  button:not(.allow-print) {
+    display: none !important;
+  }
+
+  .print-page-break {
+    page-break-before: always;
+  }
+
+  .print-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: #0f172a !important;
+    background: transparent !important;
+  }
+
+  .print-card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    color: #0f172a !important;
+  }
+
+  .print-text-dark {
+    color: #0f172a !important;
+  }
+
+  .print-text-muted {
+    color: #475569 !important;
+  }
+
+  .print-border {
+    border-color: #e2e8f0 !important;
+  }
+
+  .print-bg-slate {
+    background-color: #f8fafc !important;
+  }
 }

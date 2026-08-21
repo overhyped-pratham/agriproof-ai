@@ -9,6 +9,8 @@ import PipelineProgress from '../components/PipelineProgress';
 import AnalysisPipelineSnapshots from '../components/AnalysisPipelineSnapshots';
 import LandSatelliteAnalysis from '../components/LandSatelliteAnalysis';
 import FarmerAlertsDrawer from '../components/FarmerAlertsDrawer';
+import LiveWeatherForecastWidget from '../components/LiveWeatherForecastWidget';
+import { FarmAIExplainer } from '../components/FarmAIExplainer';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { api, Farm } from '../lib/api';
 
@@ -117,6 +119,7 @@ export default function DashboardPage() {
           cloudCover={4.2}
           damageProb={analysis.damage_probability}
           riskCategory={analysis.risk_category}
+          allowDemoRun={true}
         />
       </div>
 
@@ -152,23 +155,32 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* AI Farm Scenario & Report Explainer (Simplified Language & Voice Briefing) */}
+      {farm && (
+        <FarmAIExplainer
+          farm={farm}
+          analysis={analysis}
+          weather={{
+            temperature: analysis.temperature_mean,
+            rainfall_30d: analysis.rainfall_mm_30d,
+            rainfall_anomaly: analysis.rainfall_anomaly_pct,
+          }}
+        />
+      )}
+
       {/* Satellite Land Surface & Crop Canopy Analysis Section */}
       {farmId && <LandSatelliteAnalysis farmId={farmId} />}
 
       {/* Actionable Agronomy & Low-Bandwidth Alerts Drawer */}
       {farmId && <FarmerAlertsDrawer farmId={farmId} />}
 
-      {/* Multi-Spectral Processing Pipeline & Visual Snapshots Section */}
-      <div className="bg-dark-800 rounded-2xl border border-dark-700 p-6 shadow-xl">
-        <AnalysisPipelineSnapshots
-          farmName={farm?.name}
-          cropType={farm?.crop_type}
-          centerLat={farm?.center_lat}
-          centerLon={farm?.center_lon}
-          areaHa={farm?.area_hectares}
-          allowDemoRun={true}
-        />
-      </div>
+      {/* Real-time Open-Meteo Weather Forecast & Agricultural Climate Ingest */}
+      <LiveWeatherForecastWidget
+        lat={farm?.center_lat || 36.7783}
+        lon={farm?.center_lon || -119.4179}
+        farmName={farm?.name || 'Registered Farm Basin'}
+        cropType={farm?.crop_type || 'Agricultural Crop'}
+      />
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
