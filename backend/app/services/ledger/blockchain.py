@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc
@@ -40,7 +40,7 @@ class ClaimLedger:
         
         # Claim ID
         claim_id = f"CLM-{uuid.uuid4().hex[:8].upper()}"
-        now_dt = datetime.utcnow()
+        now_dt = datetime.now(timezone.utc)
         timestamp = standardize_timestamp(now_dt)
         
         claim_hash = hash_claim_data(
