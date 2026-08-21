@@ -1,0 +1,6 @@
+{
+  "name": "AgriProof AI",
+  "description": "Precision Satellite Intelligence & ZK Parametric Crop Insurance Platform",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
