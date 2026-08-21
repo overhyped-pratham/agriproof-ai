@@ -1,0 +1,65 @@
+{
+  "protocol": "groth16",
+  "curve": "bn128",
+  "nPublic": 1,
+  "vk_alpha_1": [
+    "0x1cb9592f6b3ad6ff5ec3c8cf325c898c8c2be4cb69fb0c6ff7a29e46a7be7c72",
+    "0x29ddfeee22d7a969335ef00a6e0c66848be41fa16dbb23b1da24177dbd3e74ad",
+    "0x01"
+  ],
+  "vk_beta_2": [
+    [
+      "0x1f5f2bf13b5e40e698888049f50e82ec4ad09dfa98e8557ee6e54580bf38f8cf",
+      "0x264aa8a0ca979148d28e7592cf32f5c1d68a5c3eb85aa5bebf2b9b77fa8f6e80"
+    ],
+    [
+      "0x2b8dc1c74261ee9ecfa1f5ec139d4889c25345718a38a086b97ec7622ea1316b",
+      "0x153127aa2e22c9a9d20c7457a15174e9efb7738fef6f82729a65fb00e1227181"
+    ],
+    [
+      "0x01",
+      "0x00"
+    ]
+  ],
+  "vk_gamma_2": [
+    [
+      "0x115cc0f5e7d690413df64c6b9662e9cf2a3617f2743245519e19607a4417189a",
+      "0x0f149d10ad6357acb125996963974631fa649f88b9c44777001ecd25b4add500"
+    ],
+    [
+      "0x173165b4c1a0173b22cf53c162624467c69992929e0618e47087612c222ff2eb",
+      "0x0c9ec685fc98c0b5f10b778fe8a23d4e8c1875154378772a8c3d9061c4d440ad"
+    ],
+    [
+      "0x01",
+      "0x00"
+    ]
+  ],
+  "vk_delta_2": [
+    [
+      "0x1404c0ae1829e1fb42845c4aa029fbf98a5bbd69f06079d2024b434cf9396263",
+      "0x2c0d2ebc325e6ebfe3d46387063d8ea714cf9988da15b0aa3ca994bb403e7c8f"
+    ],
+    [
+      "0x2cf4e815efc94e82c5e53b6f00db1e967a57a06ee06ce065e90a5aa1ba9c1a55",
+      "0x011b0e77405295c345388c3a9f9c75fe999335a0cf07c3be12189679153574c8"
+    ],
+    [
+      "0x01",
+      "0x00"
+    ]
+  ],
+  "vk_alphabeta_12": [],
+  "IC": [
+    [
+      "0x0874e44f86641b96a987d6e4df9419cf5a3c9be011681215b497576ce123b37a",
+      "0x2ff25299ad0749a04a69ec407a514dff31d51c3132e4d0c1598aa99ebef312c1",
+      "0x01"
+    ],
+    [
+      "0x05f8fe071850125a07c379a2f7c00e620ad6a8f795761e31d4e4c274b7754f24",
+      "0x08be140fa93bb3d7265be5dca0040e340cf39a3f338d4c382103f191b65675f3",
+      "0x01"
+    ]
+  ]
+}

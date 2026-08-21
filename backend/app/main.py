@@ -1,0 +1,48 @@
+from contextlib import asynccontextmanager
+from pathlib import Path
+import os
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.routes import farms, claims, ledger
+from app.api.websocket import router as ws_router
+from app.database import init_db
+from app.config import get_settings
+from app.services.ml.train import train_models
+
+settings = get_settings()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    
+    models_dir = Path(__file__).resolve().parent.parent.parent / "models"
+    if not (models_dir / "xgboost_yield.pkl").exists():
+        print("Models not found, starting training...")
+        train_models()
+    yield
+
+app = FastAPI(
+    title="AgriProof AI Backend",
+    description="FastAPI backend for AgriProof AI",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(farms.router, prefix="/api", tags=["Farms"])
+app.include_router(claims.router, prefix="/api", tags=["Claims"])
+app.include_router(ledger.router, prefix="/api", tags=["Ledger"])
+app.include_router(ws_router, tags=["Websocket"])
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {"status": "healthy"}

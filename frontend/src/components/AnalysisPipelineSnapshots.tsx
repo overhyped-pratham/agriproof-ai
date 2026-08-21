@@ -1,0 +1,233 @@
+import { useState } from 'react';
+import { generatePipelineSnapshots, SnapshotStage } from '../lib/snapshotGenerator';
+import { ChevronRight, Maximize2, X, Layers, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface AnalysisPipelineSnapshotsProps {
+  farmName?: string;
+  cropType?: string;
+  centerLat?: number;
+  centerLon?: number;
+  areaHa?: number;
+  ndviCurrent?: number;
+  ndviBaseline?: number;
+  ndviDropPct?: number;
+  evi?: number;
+  ndwi?: number;
+  cloudCover?: number;
+  damageProb?: number;
+  riskCategory?: string;
+  activeStepKey?: string;
+  completedStepKeys?: string[];
+  compact?: boolean;
+}
+
+export default function AnalysisPipelineSnapshots(props: AnalysisPipelineSnapshotsProps) {
+  const snapshots = generatePipelineSnapshots({
+    farmName: props.farmName,
+    cropType: props.cropType,
+    centerLat: props.centerLat,
+    centerLon: props.centerLon,
+    areaHa: props.areaHa,
+    ndviCurrent: props.ndviCurrent,
+    ndviBaseline: props.ndviBaseline,
+    ndviDropPct: props.ndviDropPct,
+    evi: props.evi,
+    ndwi: props.ndwi,
+    cloudCover: props.cloudCover,
+    damageProb: props.damageProb,
+    riskCategory: props.riskCategory,
+  });
+
+  const [selectedSnapshot, setSelectedSnapshot] = useState<SnapshotStage | null>(null);
+
+  return (
+    <div className="w-full">
+      {/* Header bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-dark-700">
+        <div>
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <Layers className="w-5 h-5 text-amber-500" /> Multi-Spectral Processing Pipeline & Visual Snapshots
+          </h3>
+          <p className="text-xs text-slate-400 mt-0.5">
+            End-to-end computer vision & Earth Observation pipeline: ROI $\to$ Satellite Ingestion $\to$ Cloud Masking $\to$ NDWI/NDVI Feature Extraction $\to$ Thresholding $\to$ Vectorization $\to$ Ledger.
+          </p>
+        </div>
+        <span className="text-xs font-mono text-amber-400 bg-amber-950/60 border border-amber-800/40 px-2.5 py-1 rounded-full self-start sm:self-auto font-semibold">
+          7-Stage AI Vision Flow
+        </span>
+      </div>
+
+      {/* Horizontal Flow Container */}
+      <div className="overflow-x-auto pb-4 pt-2 -mx-2 px-2 scrollbar-thin scrollbar-thumb-dark-600">
+        <div className="flex items-start min-w-[1020px] gap-2 justify-between">
+          {snapshots.map((stage, idx) => {
+            const isCompleted = props.completedStepKeys
+              ? props.completedStepKeys.includes(stage.stepKey) || props.completedStepKeys.includes('done')
+              : true;
+            const isActive = props.activeStepKey === stage.stepKey;
+            const isRoi = idx === 0;
+
+            return (
+              <div key={stage.id} className="flex items-center flex-1 min-w-[135px] max-w-[175px]">
+                {/* Stage Column */}
+                <motion.div
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  onClick={() => setSelectedSnapshot(stage)}
+                  className={`w-full flex flex-col items-center justify-between rounded-xl border p-2 cursor-pointer transition-all shadow-lg group relative overflow-hidden bg-dark-900/90 ${
+                    isActive
+                      ? 'border-amber-500 ring-2 ring-amber-500/30 shadow-amber-950/50'
+                      : isCompleted
+                      ? 'border-dark-700 hover:border-amber-500/70 hover:shadow-xl'
+                      : 'border-dark-800 opacity-60'
+                  }`}
+                >
+                  {/* Top Thumbnail Snapshot (Exact look and feel of reference image) */}
+                  <div className="relative aspect-[16/10] w-full rounded-lg overflow-hidden border border-dark-700 bg-dark-950 mb-2.5 shadow-md">
+                    <img
+                      src={stage.thumbnail}
+                      alt={stage.name}
+                      className="w-full h-full object-contain bg-black p-0.5 group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-dark-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[1px]">
+                      <span className="bg-dark-900/90 text-white text-[10px] font-medium px-2 py-1 rounded flex items-center gap-1 shadow border border-dark-600">
+                        <Maximize2 className="w-3 h-3" /> Inspect
+                      </span>
+                    </div>
+
+                    {/* Stage number tag */}
+                    <div className="absolute top-1 left-1 bg-dark-900/90 text-slate-300 font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border border-dark-700">
+                      0{idx + 1}
+                    </div>
+
+                    {isCompleted && (
+                      <div className="absolute top-1 right-1 bg-success text-dark-950 rounded-full p-0.5 shadow">
+                        <CheckCircle2 className="w-3 h-3 text-white fill-success" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Connecting indicator icon */}
+                  <div className="w-full flex justify-center mb-1 text-slate-500">
+                    <span className="text-[10px] font-mono text-slate-500">▼</span>
+                  </div>
+
+                  {/* Stage Label Block (Orange Pill Badge style matching reference) */}
+                  <div className="w-full text-center">
+                    <div
+                      className={`rounded-lg py-1.5 px-2 mb-1.5 shadow transition-all ${
+                        isRoi
+                          ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white border border-green-400/40'
+                          : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border border-amber-300/30'
+                      }`}
+                    >
+                      <p className="text-[11px] font-bold leading-tight truncate" title={stage.name}>
+                        {stage.name}
+                      </p>
+                    </div>
+                    <p className="text-[9px] text-slate-400 line-clamp-1 leading-tight mb-1 font-mono" title={stage.subtitle}>
+                      {stage.subtitle}
+                    </p>
+                    <span className="inline-block self-center text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-dark-950 text-amber-400 border border-dark-700 truncate max-w-full">
+                      {stage.badgeLabel}
+                    </span>
+                  </div>
+                </motion.div>
+
+                {/* Arrow connecting to next step */}
+                {idx < snapshots.length - 1 && (
+                  <div className="px-1 text-slate-600 flex items-center justify-center shrink-0">
+                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Snapshot High-Resolution Inspection Modal */}
+      <AnimatePresence>
+        {selectedSnapshot && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-dark-800 border border-dark-600 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl relative"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4 border-b border-dark-700 bg-dark-900/60">
+                <div className="flex items-center gap-2.5">
+                  <span className="px-2.5 py-1 text-xs font-mono font-bold rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                    Stage Snapshot
+                  </span>
+                  <h4 className="text-lg font-bold text-white">{selectedSnapshot.details.title}</h4>
+                </div>
+                <button
+                  onClick={() => setSelectedSnapshot(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-dark-700 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+                {/* Full Resolution Raster Preview */}
+                <div className="relative rounded-xl overflow-hidden border border-dark-600 shadow-xl bg-dark-950 p-2">
+                  <img
+                    src={selectedSnapshot.thumbnail}
+                    alt={selectedSnapshot.name}
+                    className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-lg"
+                  />
+                  <div className="absolute bottom-4 left-4 bg-dark-900/90 border border-dark-600 px-3 py-1 rounded-md text-xs font-mono text-slate-300 backdrop-blur">
+                    Resolution: {selectedSnapshot.details.resolution}
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <h5 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-1.5">Processing Logic & Description</h5>
+                  <p className="text-sm text-slate-200 leading-relaxed bg-dark-900/60 p-3.5 rounded-xl border border-dark-700">
+                    {selectedSnapshot.details.description}
+                  </p>
+                </div>
+
+                {/* Algorithm and Metrics Grid */}
+                <div>
+                  <h5 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">Stage Extraction Metrics</h5>
+                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
+                    {Object.entries(selectedSnapshot.details.metrics).map(([key, val]) => (
+                      <div key={key} className="bg-dark-900 p-3 rounded-lg border border-dark-700">
+                        <span className="text-xs text-slate-400 block mb-0.5">{key}</span>
+                        <span className="text-sm font-bold text-white font-mono">{String(val)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-dark-900/80 p-3.5 rounded-xl border border-dark-700 flex items-center justify-between text-xs font-mono text-slate-400">
+                  <span>Algorithm: <strong className="text-slate-200">{selectedSnapshot.details.algorithm}</strong></span>
+                  <span className="text-success flex items-center gap-1">
+                    <ShieldCheck className="w-4 h-4" /> Validated
+                  </span>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-dark-700 bg-dark-900/60 flex justify-end">
+                <button
+                  onClick={() => setSelectedSnapshot(null)}
+                  className="bg-dark-700 hover:bg-dark-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                >
+                  Close Inspection
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

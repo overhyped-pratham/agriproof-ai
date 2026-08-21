@@ -1,0 +1,5 @@
+{
+  "ndvi_drop": "1200",
+  "rain_anomaly": "2000",
+  "yield_loss": "1500"
+}

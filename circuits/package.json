@@ -1,0 +1,7 @@
+{
+  "name": "agriproof-circuits",
+  "version": "1.0.0",
+  "dependencies": {
+    "snarkjs": "^0.7.4"
+  }
+}
