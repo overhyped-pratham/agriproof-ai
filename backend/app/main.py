@@ -5,6 +5,8 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi.staticfiles import StaticFiles
+
 from app.api.routes import farms, claims, ledger
 from app.api.websocket import router as ws_router
 from app.database import init_db
@@ -12,6 +14,10 @@ from app.config import get_settings
 from app.services.ml.train import train_models
 
 settings = get_settings()
+
+static_dir = Path(__file__).resolve().parent.parent / "static"
+static_dir.mkdir(parents=True, exist_ok=True)
+(static_dir / "results").mkdir(parents=True, exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,6 +43,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 app.include_router(farms.router, prefix="/api", tags=["Farms"])
 app.include_router(claims.router, prefix="/api", tags=["Claims"])

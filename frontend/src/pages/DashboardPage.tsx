@@ -154,6 +154,18 @@ export default function DashboardPage() {
       {/* Satellite Land Surface & Crop Canopy Analysis Section */}
       {farmId && <LandSatelliteAnalysis farmId={farmId} />}
 
+      {/* Multi-Spectral Processing Pipeline & Visual Snapshots Section */}
+      <div className="bg-dark-800 rounded-2xl border border-dark-700 p-6 shadow-xl">
+        <AnalysisPipelineSnapshots
+          farmName={farm?.name}
+          cropType={farm?.crop_type}
+          centerLat={farm?.center_lat}
+          centerLon={farm?.center_lon}
+          areaHa={farm?.area_hectares}
+          allowDemoRun={true}
+        />
+      </div>
+
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
