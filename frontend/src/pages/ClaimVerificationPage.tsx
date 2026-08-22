@@ -42,7 +42,12 @@ export default function ClaimVerificationPage() {
     } catch (err) {
       console.error('[ClaimVerificationPage] Verification failed:', err);
       setVerifyResult({
+        valid: false,
         claim_id: claimId,
+        farm_id: claim?.farm_id || '',
+        payout_amount: claim?.payout_amount || 0,
+        block_hash: '',
+        payout_eligible: false,
         zk_proof_valid: false,
         zk_proof_message: 'Verification request failed.',
         ledger_valid: false,

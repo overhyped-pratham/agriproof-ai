@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { wsAnalysisUrl, api, Farm } from '../lib/api';
-import { CheckCircle2, Loader2, CircleDashed, ShieldCheck, Activity } from 'lucide-react';
+import { CheckCircle2, Loader2, CircleDashed, ShieldCheck, Activity, Satellite, Sparkles, Sliders } from 'lucide-react';
 import { motion } from 'framer-motion';
 import AnalysisPipelineSnapshots from './AnalysisPipelineSnapshots';
+import PrecisionSatelliteGISConsole from './PrecisionSatelliteGISConsole';
 import {
   PipelineStage,
   INITIAL_PIPELINE_STAGES,
@@ -32,6 +33,7 @@ export default function PipelineProgress({ farmId, onComplete }: PipelineProgres
   const [isFinished, setIsFinished]       = useState(false);
   const [lastMessage, setLastMessage]     = useState<string>('Connecting to live analysis pipeline...');
   const [farm, setFarm]                   = useState<Farm | null>(null);
+  const [viewMode, setViewMode]           = useState<'gis_console' | 'snapshots' | 'split'>('gis_console');
 
   useEffect(() => {
     if (!farmId) return;
@@ -56,24 +58,96 @@ export default function PipelineProgress({ farmId, onComplete }: PipelineProgres
       setTimeout(() => {
         disconnect();
         onComplete();
-      }, 800);
+      }, 1200);
     }
   }, [data, onComplete, disconnect]);
 
+  const activeStage = stages.find(s => s.status === 'processing') || stages[3];
+
   return (
     <div className="space-y-6">
-      {/* Visual Pipeline Snapshots Flow (Real-Time Live Images) */}
-      <div className="bg-dark-800 rounded-2xl border border-dark-700 p-5 shadow-xl">
-        <AnalysisPipelineSnapshots
-          stages={stages}
-          farmName={farm?.name}
-          cropType={farm?.crop_type}
-          centerLat={farm?.center_lat}
-          centerLon={farm?.center_lon}
-          areaHa={farm?.area_hectares}
-          allowDemoRun={false}
-        />
+      {/* Real-time View Switcher Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-dark-800 p-3 rounded-2xl border border-dark-700 shadow-md">
+        <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
+          <span className="p-1.5 rounded-lg bg-primary-500/20 text-primary-400 border border-primary-500/30">
+            <Satellite className="w-4 h-4" />
+          </span>
+          <span className="font-bold text-white">Active Processing Mode:</span>
+          <span className="text-emerald-400">Sentinel-2 MSI Multi-Spectral Ingestion</span>
+        </div>
+
+        <div className="flex items-center gap-1.5 bg-dark-900 p-1 rounded-xl border border-dark-700 text-xs font-mono">
+          <button
+            onClick={() => setViewMode('gis_console')}
+            className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+              viewMode === 'gis_console'
+                ? 'bg-primary-600 text-white font-bold shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Satellite className="w-3.5 h-3.5" />
+            <span>GIS Satellite Studio</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('snapshots')}
+            className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+              viewMode === 'snapshots'
+                ? 'bg-primary-600 text-white font-bold shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>7-Stage Pipeline Flow</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('split')}
+            className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+              viewMode === 'split'
+                ? 'bg-primary-600 text-white font-bold shadow'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>Dual View</span>
+          </button>
+        </div>
       </div>
+
+      {/* Main Interactive Precision GIS Satellite Console at Processing Time */}
+      {(viewMode === 'gis_console' || viewMode === 'split') && (
+        <div className="w-full">
+          <PrecisionSatelliteGISConsole
+            farmId={farmId}
+            farmName={farm?.name || 'Registered Farm Parcel'}
+            cropType={farm?.crop_type || 'Winter Rapeseed'}
+            areaHa={farm?.area_hectares || 9.6}
+            centerLat={farm?.center_lat || 49.8880}
+            centerLon={farm?.center_lon || 28.8644}
+            currentNdvi={0.41}
+            baselineNdvi={0.68}
+            isProcessing={!isFinished}
+            activeProcessingStageTitle={activeStage?.title || 'Computing Indices'}
+            activeProcessingProgress={activeStage?.progress || 70}
+          />
+        </div>
+      )}
+
+      {/* Visual 7-Stage Pipeline Snapshots Flow */}
+      {(viewMode === 'snapshots' || viewMode === 'split') && (
+        <div className="bg-dark-800 rounded-2xl border border-dark-700 p-5 shadow-xl">
+          <AnalysisPipelineSnapshots
+            stages={stages}
+            farmName={farm?.name}
+            cropType={farm?.crop_type}
+            centerLat={farm?.center_lat}
+            centerLon={farm?.center_lon}
+            areaHa={farm?.area_hectares}
+            allowDemoRun={false}
+          />
+        </div>
+      )}
 
       {/* Progress execution logs */}
       <div className="bg-dark-800 rounded-xl border border-dark-700 p-6 shadow-md font-mono text-sm">
@@ -146,3 +220,4 @@ export default function PipelineProgress({ farmId, onComplete }: PipelineProgres
     </div>
   );
 }
+

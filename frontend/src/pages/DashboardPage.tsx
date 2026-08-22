@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Activity, Map, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Activity, Map, AlertTriangle, ShieldCheck, Satellite } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import RiskGauge from '../components/RiskGauge';
-import NDVIChart from '../components/NDVIChart';
+import HistoricalVegetationHealthChart from '../components/HistoricalVegetationHealthChart';
 import WeatherRiskPanel from '../components/WeatherRiskPanel';
 import PipelineProgress from '../components/PipelineProgress';
 import AnalysisPipelineSnapshots from '../components/AnalysisPipelineSnapshots';
 import LandSatelliteAnalysis from '../components/LandSatelliteAnalysis';
+import PrecisionSatelliteGISConsole from '../components/PrecisionSatelliteGISConsole';
 import FarmerAlertsDrawer from '../components/FarmerAlertsDrawer';
 import LiveWeatherForecastWidget from '../components/LiveWeatherForecastWidget';
 import { FarmAIExplainer } from '../components/FarmAIExplainer';
@@ -191,11 +192,33 @@ export default function DashboardPage() {
         cropType={farm?.crop_type || 'Agricultural Crop'}
       />
 
+      {/* Precision GIS Multi-Spectral Satellite Intelligence Studio (Sentinel Hub / EOS Crop Monitoring) */}
+      <PrecisionSatelliteGISConsole
+        farmId={farmId}
+        farmName={farm?.name || 'Registered Farm Parcel'}
+        cropType={farm?.crop_type || 'Agricultural Crop'}
+        areaHa={farm?.area_hectares || 9.6}
+        centerLat={farm?.center_lat || 49.8880}
+        centerLon={farm?.center_lon || 28.8644}
+        currentNdvi={analysis?.ndvi_current || 0.41}
+        baselineNdvi={analysis?.ndvi_baseline || 0.68}
+        stressLevel={analysis?.stress_level || 'MODERATE'}
+        isProcessing={false}
+      />
+
+      {/* Historical 6-Month Vegetation Health & Spectral Trajectory Section */}
+      <HistoricalVegetationHealthChart
+        data={analysis.ndvi_time_series}
+        baseline={analysis.ndvi_baseline}
+        cropType={farm?.crop_type || 'Crop'}
+        farmName={farm?.name || 'Farm Parcel'}
+        stressThreshold={0.30}
+        currentDropPct={analysis.ndvi_drop_pct * 100}
+      />
+
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <NDVIChart data={analysis.ndvi_time_series} baseline={analysis.ndvi_baseline} />
-
           <div className="bg-dark-800 rounded-xl border border-dark-700 p-6 shadow-md">
             <h3 className="text-lg font-semibold text-white mb-4">Damage Analysis (Feature Impact)</h3>
             <div className="grid grid-cols-2 gap-8">

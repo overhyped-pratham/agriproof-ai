@@ -489,7 +489,7 @@ ${explanation.actionableRecommendations.map((r, i) => `${i + 1}. ${r}`).join('\n
                             <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] flex items-center justify-center font-bold">
                               Q
                             </span>
-                            {faq.question}
+                            {faq.question || (faq as any).q}
                           </span>
                           {isExpanded ? (
                             <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
@@ -499,7 +499,7 @@ ${explanation.actionableRecommendations.map((r, i) => `${i + 1}. ${r}`).join('\n
                         </button>
                         {isExpanded && (
                           <div className="px-4 pb-3.5 pt-1 text-xs sm:text-sm text-slate-300 border-t border-slate-700/40 bg-slate-900/40 leading-relaxed">
-                            {faq.answer}
+                            {faq.answer || (faq as any).a}
                           </div>
                         )}
                       </div>
