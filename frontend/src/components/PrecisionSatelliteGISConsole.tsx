@@ -2,11 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Layers,
   Calendar,
-  Eye,
   Sliders,
-  ChevronLeft,
-  ChevronRight,
-  Download,
   Maximize2,
   Minimize2,
   RefreshCw,
@@ -16,18 +12,10 @@ import {
   Droplets,
   Sprout,
   Compass,
-  Crosshair,
   SplitSquareVertical,
-  Activity,
-  AlertTriangle,
   ShieldCheck,
-  Zap,
-  MapPin,
   CheckCircle2,
-  Info,
-  Sparkles,
   BarChart3,
-  Thermometer
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -40,7 +28,7 @@ import {
   Tooltip,
   ReferenceLine
 } from 'recharts';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { soundFx } from '../lib/soundFx';
 
 export type SpectralBandType =
@@ -90,35 +78,31 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
   areaHa = 9.6,
   centerLat = 49.888,
   centerLon = 28.8644,
-  currentNdvi = 0.41,
-  baselineNdvi = 0.68,
-  stressLevel = 'MODERATE',
+  currentNdvi: _currentNdvi = 0.41,
+  baselineNdvi: _baselineNdvi = 0.68,
+  stressLevel: _stressLevel = 'MODERATE',
   isProcessing = false,
   activeProcessingStageTitle = 'Computing Multi-Spectral Indices',
   activeProcessingProgress = 65,
 }) => {
   // Active states
   const [selectedBand, setSelectedBand] = useState<SpectralBandType>('NDVI');
-  const [secondaryBand, setSecondaryBand] = useState<SpectralBandType>('NDMI');
+  const [secondaryBand] = useState<SpectralBandType>('NDMI');
   const [isSplitMode, setIsSplitMode] = useState<boolean>(false);
   const [selectedPassIndex, setSelectedPassIndex] = useState<number>(5);
   const [hoverCoord, setHoverCoord] = useState<{ x: number; y: number; ndviVal: number; ndmiVal: number } | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<'Sentinel-2' | 'Landsat 8' | 'DEM' | 'MODIS'>('Sentinel-2');
   const [opacity, setOpacity] = useState<number>(0.85);
-  const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'indices' | 'weather' | 'tasks'>('indices');
-  const [showCalendarModal, setShowCalendarModal] = useState<boolean>(false);
-  const [timeSeriesMetric, setTimeSeriesMetric] = useState<'NDVI' | 'Moisture' | 'All'>('All');
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const secondaryCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Sentinel-2 Bi-Weekly Orbital Passes (Matching user screenshots timeline)
+  // Sentinel-2 Bi-Weekly Orbital Passes (Current 2026 Season)
   const passes: SatellitePass[] = useMemo(() => [
     {
       id: 'p1',
-      date: '2024-05-10',
+      date: '2026-05-10',
       displayDate: '10 May',
       cloudCoverPct: 0,
       satellite: 'Sentinel-2A',
@@ -133,7 +117,7 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
     },
     {
       id: 'p2',
-      date: '2024-05-25',
+      date: '2026-05-25',
       displayDate: '25 May',
       cloudCoverPct: 5,
       satellite: 'Sentinel-2B',
@@ -148,7 +132,7 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
     },
     {
       id: 'p3',
-      date: '2024-06-11',
+      date: '2026-06-11',
       displayDate: '11 Jun',
       cloudCoverPct: 10,
       satellite: 'Sentinel-2A',
@@ -163,7 +147,7 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
     },
     {
       id: 'p4',
-      date: '2024-07-02',
+      date: '2026-07-02',
       displayDate: '02 Jul',
       cloudCoverPct: 0,
       satellite: 'Sentinel-2B',
@@ -178,7 +162,7 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
     },
     {
       id: 'p5',
-      date: '2024-07-22',
+      date: '2026-07-22',
       displayDate: '22 Jul',
       cloudCoverPct: 0,
       satellite: 'Sentinel-2A',
@@ -193,7 +177,7 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
     },
     {
       id: 'p6',
-      date: '2024-08-06',
+      date: '2026-08-06',
       displayDate: '06 Aug',
       cloudCoverPct: 0,
       satellite: 'Sentinel-2B',
@@ -208,7 +192,7 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
     },
     {
       id: 'p7',
-      date: '2024-08-19',
+      date: '2026-08-19',
       displayDate: '19 Aug',
       cloudCoverPct: 0,
       satellite: 'Sentinel-2A',
@@ -223,8 +207,8 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
     },
     {
       id: 'p8',
-      date: '2024-08-26',
-      displayDate: '26 Aug',
+      date: '2026-08-22',
+      displayDate: '22 Aug',
       cloudCoverPct: 0,
       satellite: 'Sentinel-2B',
       ndvi: 0.31,
@@ -605,7 +589,7 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
           <div className="relative z-10 p-4 flex items-center justify-between pointer-events-none">
             <div className="pointer-events-auto bg-slate-950/85 backdrop-blur border border-slate-800 px-3 py-1.5 rounded-xl shadow-xl flex items-center gap-2 text-xs font-mono">
               <Calendar className="w-3.5 h-3.5 text-primary-400" />
-              <span className="font-bold text-white">{activePass.displayDate} 2024</span>
+              <span className="font-bold text-white">{activePass.displayDate} 2026</span>
               <span className="text-slate-400">•</span>
               <span className="text-emerald-400">{activePass.satellite}</span>
               <span className="text-slate-400">•</span>
@@ -646,7 +630,11 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
             ) : (
               /* Single Large Canvas Mode with Polygon & Hover Probe */
               <div className="relative w-full h-full max-w-[540px] max-h-[360px] flex items-center justify-center">
-                <canvas ref={canvasRef} width={500} height={320} className="w-full h-full object-contain rounded-xl shadow-2xl" />
+                <img
+                  src="/assets/snapshots/captured_ndmi_falsecolor.png"
+                  alt="Sentinel-2 Surface Reflectance (L2A)"
+                  className="w-full h-full object-contain rounded-xl shadow-2xl"
+                />
 
                 {/* Hover Probe Tooltip Box (Screenshot 2 Pin: NDVI: 0.45 Moderate vegetation) */}
                 {hoverCoord && (
@@ -760,7 +748,7 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
               <span className="text-slate-400 font-bold flex items-center gap-1">
                 <Sprout className="w-3.5 h-3.5 text-emerald-400" /> Crop Rotation
               </span>
-              <span className="text-emerald-400 font-semibold text-[11px]">Season 2024</span>
+              <span className="text-emerald-400 font-semibold text-[11px]">Season 2025-2026</span>
             </div>
 
             <div className="flex items-center justify-between text-xs font-mono pt-1">
@@ -770,7 +758,7 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
 
             <div className="flex items-center justify-between text-xs font-mono">
               <span className="text-slate-400">Sowing Date:</span>
-              <span className="font-bold text-slate-200">17.09.2023</span>
+              <span className="font-bold text-slate-200">15.11.2025</span>
             </div>
 
             <div className="flex items-center justify-between text-xs font-mono">
@@ -823,7 +811,7 @@ export const PrecisionSatelliteGISConsole: React.FC<PrecisionSatelliteGISConsole
             </span>
             <div className="flex items-center gap-2 text-xs font-mono">
               <span className="flex items-center gap-1 text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" /> 2024 Current
+                <span className="w-2 h-2 rounded-full bg-emerald-400" /> 2026 Current
               </span>
               <span className="flex items-center gap-1 text-slate-400">
                 <span className="w-2 h-2 rounded-full bg-slate-400" /> 5-Yr Baseline

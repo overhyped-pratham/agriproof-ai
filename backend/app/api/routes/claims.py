@@ -103,3 +103,38 @@ async def verify_claim(claim_id: str, db: AsyncSession = Depends(get_db)):
         "ledger_valid": ledger_result.get("valid", False),
         "overall_valid": proof_result.get("valid", False) and ledger_result.get("valid", False)
     }
+
+@router.get("/claims/estimate/{farm_id}")
+async def get_claim_estimate(farm_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Computes a deterministic, transparent parametric insurance claim and payout estimation
+    using the actual satellite multi-spectral analysis and AI predictions for the given farm.
+    """
+    result = await db.execute(select(Farm).where(Farm.id == farm_id))
+    farm = result.scalars().first()
+    if not farm:
+        raise HTTPException(status_code=404, detail="Farm not found")
+
+    result = await db.execute(select(AnalysisResult).where(AnalysisResult.farm_id == farm_id))
+    analysis = result.scalars().first()
+    if not analysis:
+        raise HTTPException(status_code=400, detail="Farm has not been analyzed yet. Run analysis first.")
+
+    rules_engine = InsuranceRulesEngine()
+    estimate = rules_engine.estimate_payout(
+        policy_id=farm.policy_id,
+        crop_type=farm.crop_type,
+        area_hectares=farm.area_hectares,
+        ndvi_drop_pct=analysis.ndvi_drop_pct,
+        rain_anomaly_pct=analysis.rainfall_anomaly_pct,
+        yield_loss_pct=analysis.expected_loss_pct,
+        damage_probability=analysis.damage_probability,
+        confidence_score=analysis.confidence
+    )
+
+    return {
+        "farm_id": farm.id,
+        "farm_name": farm.name,
+        **estimate
+    }
+

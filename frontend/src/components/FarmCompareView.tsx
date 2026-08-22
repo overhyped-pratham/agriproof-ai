@@ -4,21 +4,12 @@ import {
   ArrowLeftRight,
   Tractor,
   Activity,
-  Droplets,
   Thermometer,
-  ShieldAlert,
-  ShieldCheck,
-  TrendingDown,
-  TrendingUp,
   Scale,
   ExternalLink,
   RefreshCw,
-  Sparkles,
   Layers,
-  Calendar,
   MapPin,
-  CheckCircle,
-  AlertTriangle,
   Zap,
 } from 'lucide-react';
 import {
@@ -29,7 +20,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
 } from 'recharts';
 import { api, Farm, AnalysisResult } from '../lib/api';
 
@@ -130,16 +120,6 @@ export const FarmCompareView: React.FC<FarmCompareViewProps> = ({
     return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
   };
 
-  const getRiskBadge = (category?: string) => {
-    const c = category?.toUpperCase() || 'LOW';
-    if (c === 'HIGH' || c === 'CRITICAL' || c === 'SEVERE') {
-      return 'bg-red-500/20 text-red-300 border-red-500/40';
-    }
-    if (c === 'MODERATE' || c === 'MEDIUM') {
-      return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-    }
-    return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
-  };
 
   return (
     <div className="bg-slate-900 border border-slate-700/80 rounded-2xl p-5 sm:p-7 shadow-2xl relative overflow-hidden space-y-6">

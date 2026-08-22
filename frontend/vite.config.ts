@@ -14,6 +14,14 @@ export default defineConfig({
         changeOrigin: true,
         // No rewrite — backend mounts routes at /api/*
       },
+      '/static': {
+        target: API_TARGET,
+        changeOrigin: true,
+      },
+      '/storage': {
+        target: API_TARGET,
+        changeOrigin: true,
+      },
       '/ws': {
         target: WS_TARGET,
         ws: true,

@@ -9,7 +9,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ReferenceLine,
   ReferenceArea
 } from 'recharts';
@@ -20,15 +19,11 @@ import {
   Activity,
   Calendar,
   Layers,
-  Info,
   Download,
-  Eye,
   AlertTriangle,
   Droplets,
   Sprout,
   ShieldAlert,
-  Sparkles,
-  RefreshCw
 } from 'lucide-react';
 
 export interface TimeSeriesPoint {
@@ -60,13 +55,12 @@ export const HistoricalVegetationHealthChart: React.FC<HistoricalVegetationHealt
   cropType = 'Wheat',
   farmName = 'Registered Parcel',
   stressThreshold = 0.30,
-  currentDropPct = 35.0,
+  currentDropPct: _currentDropPct = 35.0,
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<MetricMode>('all');
   const [timeRange, setTimeRange] = useState<TimeRange>('6M');
   const [showBaselineBand, setShowBaselineBand] = useState<boolean>(true);
   const [showRainfall, setShowRainfall] = useState<boolean>(true);
-  const [highlightAnomalies, setHighlightAnomalies] = useState<boolean>(true);
 
   // Generate complete, enriched 6-month historical Sentinel-2 data points
   const enrichedData = useMemo(() => {
@@ -525,7 +519,7 @@ export const HistoricalVegetationHealthChart: React.FC<HistoricalVegetationHealt
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-          {filteredData.slice(-6).map((pt, idx) => {
+          {filteredData.slice(-6).map((pt, _idx) => {
             const isCritical = pt.ndvi < stressThreshold;
             const isOptimal = pt.ndvi >= 0.55;
             return (
@@ -598,7 +592,7 @@ export const HistoricalVegetationHealthChart: React.FC<HistoricalVegetationHealt
 };
 
 // Helper: Custom Rich Tooltip for Recharts
-const CustomHealthTooltip = ({ active, payload, label, baseline, stressThreshold }: any) => {
+const CustomHealthTooltip = ({ active, payload, label: _label, baseline, stressThreshold }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const isCritical = data.ndvi < stressThreshold;
@@ -680,7 +674,7 @@ const CustomHealthTooltip = ({ active, payload, label, baseline, stressThreshold
 };
 
 // Helper: Enrich base time points with realistic multi-spectral and meteorological data
-function enrichPoints(points: TimeSeriesPoint[], baselineVal: number, threshold: number) {
+function enrichPoints(points: TimeSeriesPoint[], baselineVal: number, _threshold: number) {
   const stages = [
     'Sowing & Emergence',
     'Early Tillering',

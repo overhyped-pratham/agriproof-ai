@@ -1,5 +1,5 @@
 import React from 'react';
-import { WifiOff, Database, Clock, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { WifiOff, Database, Clock, RefreshCw } from 'lucide-react';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 
 interface OfflineStatusBannerProps {

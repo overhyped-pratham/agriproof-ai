@@ -8,20 +8,15 @@ import {
   Snowflake, 
   Wind, 
   Droplets, 
-  Thermometer, 
   Compass, 
   RefreshCw, 
   Sprout, 
   SunMedium, 
   CloudDrizzle, 
   CheckCircle2, 
-  AlertTriangle,
-  ArrowDown,
-  ArrowUp,
   Activity,
   CalendarDays,
   Clock,
-  Sparkles
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -158,7 +153,7 @@ export default function LiveWeatherForecastWidget({
 }: LiveWeatherProps) {
   const [data, setData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<'daily' | 'hourly' | 'agronomy'>('daily');
 

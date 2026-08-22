@@ -1,15 +1,16 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Satellite } from 'lucide-react';
+import { Menu, X, Satellite, Plus, Zap } from 'lucide-react';
 import { useState } from 'react';
 import clsx from 'clsx';
-import ThemeToggle from './ThemeToggle';
 
 const NAV_LINKS = [
-  { to: '/', label: 'Orbital Command' },
-  { to: '/register', label: 'Register Farm' },
-  { to: '/farms', label: 'My Farms' },
-  { to: '/ledger', label: 'Claim Ledger' },
-  { to: '/insurer', label: 'Insurer Risk Pool' },
+  { to: '/', label: 'Overview', icon: 'dashboard' },
+  { to: '/farms', label: 'My Fields', icon: 'agriculture' },
+  { to: '/doctor', label: 'Crop Doctor', icon: 'local_hospital' },
+  { to: '/weather', label: 'Weather', icon: 'cloud' },
+  { to: '/market', label: 'Market', icon: 'trending_up' },
+  { to: '/ledger', label: 'ZK Ledger', icon: 'verified' },
+  { to: '/insurer', label: 'Insurer', icon: 'shield' },
 ];
 
 export default function Navbar() {
@@ -17,96 +18,158 @@ export default function Navbar() {
   const location = useLocation();
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.7)] transition-all duration-300 print:hidden no-print">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Brand */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-lg bg-primary-500/20 border border-primary-400/40 flex items-center justify-center group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(0,163,255,0.4)]">
-              <Satellite className="h-5 w-5 text-primary-400" />
-            </div>
-            <span className="font-headline-lg font-bold text-xl md:text-2xl tracking-wider text-white">
-              AgriProof<span className="text-primary-400">.AI</span>
-            </span>
-          </Link>
+    <>
+      {/* ── Top Navigation Bar — Dark Space Minimalist ── */}
+      <nav className="fixed top-0 w-full z-50 bg-black/70 backdrop-blur-xl border-b border-white/[0.06] shadow-[0_1px_0_0_rgba(0,163,255,0.08)] transition-all duration-300 print:hidden no-print">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center space-x-1 font-body-md text-sm">
-            {NAV_LINKS.map(({ to, label }) => {
-              const isActive = location.pathname === to;
-              return (
-                <Link
-                  key={to}
-                  to={to}
-                  className={clsx(
-                    'px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-1.5',
-                    isActive
-                      ? 'text-primary-400 bg-white/10 border-b-2 border-primary-400 shadow-[0_0_15px_rgba(0,163,255,0.15)] font-semibold'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5',
-                  )}
-                >
-                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" />}
-                  {label}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Right Action */}
-          <div className="hidden md:flex items-center gap-3">
-            <ThemeToggle />
-            <Link
-              to="/register"
-              className="neon-button px-4 py-2 rounded-lg font-label-caps text-xs font-bold uppercase tracking-wider flex items-center gap-2"
-            >
-              <span>Initialize Farm</span>
-              <span className="material-symbols-outlined text-sm">rocket_launch</span>
+            {/* Brand */}
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center group-hover:border-cyan-400/60 group-hover:bg-cyan-500/20 transition-all">
+                <Satellite className="h-4 w-4 text-cyan-400" />
+              </div>
+              <div className="flex flex-col leading-none">
+                <span className="font-mono font-bold text-base tracking-wider text-white group-hover:text-cyan-100 transition-colors">
+                  AGRIPROF<span className="text-cyan-400">.AI</span>
+                </span>
+                <span className="text-[9px] text-white/30 font-mono tracking-widest uppercase">
+                  Sentinel-2 · ZK Engine
+                </span>
+              </div>
             </Link>
-          </div>
 
-          {/* Mobile toggle */}
-          <div className="flex items-center gap-2 md:hidden">
-            <ThemeToggle />
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 focus:outline-none"
-            >
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            {/* Desktop Nav Links */}
+            <div className="hidden md:flex items-center gap-0.5 font-mono text-xs">
+              {NAV_LINKS.map(({ to, label }) => {
+                const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+                return (
+                  <Link
+                    key={to}
+                    to={to}
+                    className={clsx(
+                      'px-3.5 py-2 rounded-lg font-medium tracking-wide transition-all duration-200',
+                      isActive
+                        ? 'text-cyan-300 bg-cyan-500/10 border border-cyan-500/20'
+                        : 'text-white/50 hover:text-white/90 hover:bg-white/[0.04]',
+                    )}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Right CTA */}
+            <div className="hidden md:flex items-center gap-3">
+              {/* Live Orbit Indicator */}
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-mono text-white/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                <span>ORBIT ACTIVE</span>
+              </div>
+
+              <Link
+                to="/onboard"
+                className="px-4 py-2 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 hover:border-cyan-400/50 text-cyan-300 text-xs font-mono font-semibold flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,163,255,0.15)] hover:shadow-[0_0_20px_rgba(0,163,255,0.25)] transition-all active:scale-95 tracking-wide"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>ANALYZE FIELD</span>
+              </Link>
+
+              {/* Farmer Avatar */}
+              <div className="w-8 h-8 rounded-full border border-cyan-500/30 overflow-hidden shrink-0 ring-1 ring-cyan-500/10">
+                <img
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkOja07M3e2a_VQPc0xXDFLISczngZDv1yUdIxNJi994WdlKEAR5F4B2cRYEo-qgAJ-X-Z7IDmyrmmhr4trh9T8m8MdQ7wtc-e14sXV81o4YDchTp79VQAhLxTR02fBnx9qKnA5E4cXWAYkEZC_HpDmcceap6xGhIksa6ny96NfI8xMRnOXZUhvDDawPJJrkY8nv9hb_yv8bpaq1s3ljCaGq_2p2ChORvGIww9Q-P1cVGNGhbuWeBDyQ"
+                  alt="Farmer"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+
+            {/* Mobile menu button */}
+            <div className="flex items-center gap-3 md:hidden">
+              <div className="w-7 h-7 rounded-full border border-cyan-500/30 overflow-hidden shrink-0">
+                <img
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkOja07M3e2a_VQPc0xXDFLISczngZDv1yUdIxNJi994WdlKEAR5F4B2cRYEo-qgAJ-X-Z7IDmyrmmhr4trh9T8m8MdQ7wtc-e14sXV81o4YDchTp79VQAhLxTR02fBnx9qKnA5E4cXWAYkEZC_HpDmcceap6xGhIksa6ny96NfI8xMRnOXZUhvDDawPJJrkY8nv9hb_yv8bpaq1s3ljCaGq_2p2ChORvGIww9Q-P1cVGNGhbuWeBDyQ"
+                  alt="Farmer"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors"
+              >
+                {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Mobile menu */}
-      <div className={clsx('md:hidden', isOpen ? 'block' : 'hidden')}>
-        <div className="px-3 pt-2 pb-4 space-y-1 bg-black/90 backdrop-blur-2xl border-b border-white/10">
-          {NAV_LINKS.map(({ to, label }) => (
+        {/* Mobile slide-down menu */}
+        <div className={clsx('md:hidden border-t border-white/[0.06] bg-black/90 backdrop-blur-xl', isOpen ? 'block' : 'hidden')}>
+          <div className="px-4 pt-3 pb-5 space-y-1">
+            {NAV_LINKS.map(({ to, label }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setIsOpen(false)}
+                className={clsx(
+                  'block px-4 py-3 rounded-lg text-sm font-mono tracking-wide transition-colors',
+                  location.pathname === to
+                    ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20'
+                    : 'text-white/40 hover:text-white hover:bg-white/[0.04]',
+                )}
+              >
+                {label}
+              </Link>
+            ))}
+            <div className="pt-3 flex gap-2">
+              <Link
+                to="/onboard"
+                onClick={() => setIsOpen(false)}
+                className="flex-1 py-3 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold flex items-center justify-center gap-1.5 tracking-wide"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>ANALYZE FIELD</span>
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setIsOpen(false)}
+                className="py-3 px-4 rounded-lg bg-white/[0.04] border border-white/10 text-white/50 text-xs font-mono flex items-center justify-center"
+              >
+                <span>Draw Field</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* ── Mobile Bottom Navigation — Dark Space Style ── */}
+      <nav className="fixed bottom-0 left-0 w-full h-[68px] flex justify-around items-center px-2 pb-safe bg-black/90 backdrop-blur-xl border-t border-white/[0.06] shadow-[0_-1px_0_rgba(0,163,255,0.08)] z-50 md:hidden">
+        {[
+          { to: '/', label: 'Home', icon: 'dashboard' },
+          { to: '/weather', label: 'Weather', icon: 'cloud' },
+          { to: '/market', label: 'Market', icon: 'trending_up' },
+          { to: '/farms', label: 'Fields', icon: 'agriculture' },
+        ].map(({ to, label, icon }) => {
+          const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+          return (
             <Link
               key={to}
               to={to}
-              onClick={() => setIsOpen(false)}
               className={clsx(
-                'block px-3 py-2 rounded-lg text-base font-medium transition-colors',
-                location.pathname === to
-                  ? 'bg-primary-500/20 text-primary-400 font-semibold'
-                  : 'text-slate-300 hover:text-white hover:bg-white/5',
+                'flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-150',
+                isActive
+                  ? 'text-cyan-300 bg-cyan-500/10'
+                  : 'text-white/30 hover:text-white/70',
               )}
             >
-              {label}
+              <span className={clsx('material-symbols-outlined text-xl', isActive ? 'text-cyan-300' : '')}>{icon}</span>
+              <span className={clsx('text-[10px] font-mono tracking-wide', isActive ? 'text-cyan-300' : 'text-white/30')}>{label}</span>
             </Link>
-          ))}
-          <div className="pt-2">
-            <Link
-              to="/register"
-              onClick={() => setIsOpen(false)}
-              className="w-full neon-button py-2.5 rounded-lg font-label-caps text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
-            >
-              <span>Initialize Farm</span>
-              <span className="material-symbols-outlined text-sm">rocket_launch</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </nav>
+          );
+        })}
+      </nav>
+    </>
   );
 }

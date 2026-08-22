@@ -13,6 +13,7 @@ from app.database import get_db, AsyncSessionLocal
 from app.models.farm import Farm
 from app.models.claim import AnalysisResult
 from app.services.pipeline import execute_farm_analysis
+from app.services.weather.risk_engine import WeatherRiskEngine
 
 router = APIRouter()
 

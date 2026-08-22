@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fields Management - Terraform</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "primary-fixed-dim": "#adcfad",
+                        "surface": "#fafaf4",
+                        "surface-container-high": "#e8e8e3",
+                        "surface-variant": "#e3e3de",
+                        "on-secondary-fixed-variant": "#653d1e",
+                        "inverse-on-surface": "#f1f1ec",
+                        "tertiary": "#2d2f2c",
+                        "background": "#fafaf4",
+                        "surface-container-low": "#f4f4ee",
+                        "on-secondary-container": "#794e2e",
+                        "secondary": "#805533",
+                        "on-surface-variant": "#424841",
+                        "surface-container-highest": "#e3e3de",
+                        "tertiary-fixed-dim": "#c6c7c2",
+                        "primary-fixed": "#c8ecc8",
+                        "surface-bright": "#fafaf4",
+                        "secondary-fixed": "#ffdcc5",
+                        "inverse-surface": "#2f312e",
+                        "on-tertiary-fixed": "#1a1c19",
+                        "surface-container": "#eeeee9",
+                        "on-error": "#ffffff",
+                        "on-background": "#1a1c19",
+                        "error": "#ba1a1a",
+                        "primary-container": "#2d4b31",
+                        "on-primary": "#ffffff",
+                        "on-surface": "#1a1c19",
+                        "secondary-fixed-dim": "#f4bb92",
+                        "primary": "#17341c",
+                        "on-primary-fixed": "#03210b",
+                        "inverse-primary": "#adcfad",
+                        "tertiary-container": "#434542",
+                        "on-tertiary-container": "#b1b2ae",
+                        "surface-tint": "#47664a",
+                        "on-secondary-fixed": "#301400",
+                        "on-primary-fixed-variant": "#2f4e33",
+                        "secondary-container": "#fdc39a",
+                        "on-tertiary-fixed-variant": "#454744",
+                        "outline-variant": "#c2c8bf",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#e3e3de",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#737971",
+                        "surface-dim": "#dadad5",
+                        "error-container": "#ffdad6",
+                        "on-primary-container": "#98ba99"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "2xl": "1.5rem"
+                    },
+                    "spacing": {
+                        "gutter-mobile": "12px",
+                        "base": "8px",
+                        "margin-mobile": "20px",
+                        "stack-sm": "4px",
+                        "stack-lg": "32px",
+                        "stack-md": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "label-sm": ["Hanken Grotesk"],
+                        "data-display": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "26px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-sm": ["13px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+                        "data-display": ["32px", { "lineHeight": "40px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background h-full font-body-md antialiased overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container pb-24 md:pb-0 pt-16">
+<!-- TopAppBar (Hidden on desktop if using side nav, but we keep it responsive) -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-surface-dim shadow-sm flex justify-between items-center px-margin-mobile h-16 w-full max-w-4xl mx-auto md:max-w-none md:px-8">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-primary dark:text-primary-fixed-dim tracking-tight">Terraform</h1>
+</div>
+<!-- Desktop Nav Cluster -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-200 font-label-sm text-label-sm flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+                Dashboard
+            </a>
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-200 font-label-sm text-label-sm flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">cloud</span>
+                Weather
+            </a>
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-200 font-label-sm text-label-sm flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">trending_up</span>
+                Market
+            </a>
+<a class="text-primary bg-primary-container/10 px-4 py-2 rounded-full transition-colors duration-200 font-label-sm text-label-sm flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">agriculture</span>
+                Fields
+            </a>
+</nav>
+<div class="flex items-center gap-4">
+<button aria-label="notifications" class="text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-variant border-2 border-primary-container overflow-hidden shrink-0">
+<img alt="Farmer Profile" class="w-full h-full object-cover" data-alt="A clean, professional headshot of a modern farmer or agronomist, outdoors with a slightly blurred background of a healthy crop field. The lighting is bright and natural, reflecting the organic minimalism aesthetic of the app. The mood is competent and approachable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkOja07M3e2a_VQPc0xXDFLISczngZDv1yUdIxNJi994WdlKEAR5F4B2cRYEo-qgAJ-X-Z7IDmyrmmhr4trh9T8m8MdQ7wtc-e14sXV81o4YDchTp79VQAhLxTR02fBnx9qKnA5E4cXWAYkEZC_HpDmcceap6xGhIksa6ny96NfI8xMRnOXZUhvDDawPJJrkY8nv9hb_yv8bpaq1s3ljCaGq_2p2ChORvGIww9Q-P1cVGNGhbuWeBDyQ"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="max-w-7xl mx-auto px-margin-mobile md:px-8 py-8 md:py-12 flex flex-col gap-stack-lg">
+<!-- Page Header & Actions -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="flex flex-col gap-stack-sm">
+<h2 class="font-data-display text-data-display text-primary">Fields</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Manage and monitor your farm plots across all locations.</p>
+</div>
+<div class="flex items-center gap-4 w-full md:w-auto">
+<button class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-primary text-on-primary font-label-sm text-label-sm px-6 h-12 rounded-full shadow-[0_4px_16px_0_rgba(23,52,28,0.12)] hover:bg-on-primary-fixed-variant active:scale-95 transition-all duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">add</span>
+                    New Field
+                </button>
+</div>
+</div>
+<!-- Filters & Search (Glassmorphic Bar) -->
+<div class="bg-surface-container-lowest/80 backdrop-blur-md border border-surface-variant rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-[0_8px_24px_-4px_rgba(23,52,28,0.04)]">
+<div class="relative w-full md:max-w-md">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full h-12 pl-12 pr-4 bg-surface-container rounded-xl border-none text-on-surface focus:ring-2 focus:ring-primary font-body-md text-body-md placeholder:text-on-surface-variant/60 transition-shadow" placeholder="Search fields..." type="text"/>
+</div>
+<div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 snap-x">
+<button class="snap-start shrink-0 flex items-center gap-2 bg-surface-variant/50 hover:bg-surface-variant px-4 h-10 rounded-lg text-on-surface font-label-sm text-label-sm transition-colors border border-transparent">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                    Crop Type
+                </button>
+<button class="snap-start shrink-0 flex items-center gap-2 bg-primary-container/10 border border-primary/20 text-primary px-4 h-10 rounded-lg font-label-sm text-label-sm transition-colors">
+<span class="material-symbols-outlined text-[18px]">eco</span>
+                    Status: Healthy
+                </button>
+<button class="snap-start shrink-0 flex items-center gap-2 bg-surface-variant/50 hover:bg-surface-variant px-4 h-10 rounded-lg text-on-surface font-label-sm text-label-sm transition-colors border border-transparent">
+<span class="material-symbols-outlined text-[18px]">sort</span>
+                    Sort: Size
+                </button>
+</div>
+</div>
+<!-- Fields Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Field Card 1 -->
+<div class="bg-surface-container-lowest rounded-[24px] shadow-[0_8px_24px_-4px_rgba(23,52,28,0.06)] overflow-hidden flex flex-col group hover:-translate-y-1 transition-transform duration-300 cursor-pointer">
+<!-- Map Header -->
+<div class="h-40 relative bg-surface-variant w-full overflow-hidden">
+<img alt="Map view of North Block A" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" data-alt="A top-down satellite view of a lush, perfectly geometric rectangular agricultural field. The colors are vibrant natural greens and rich earth tones, characteristic of modern high-resolution satellite imagery. The lighting suggests mid-day clarity, fitting the clean, organic minimalism of an agriculture app interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRaGSLOp-288yRdNN_M0sZrBRlObwnk4iRo7_UfIDJil4fdzgrdTCMyW5MVCHkRHbMHqDhDxS5Q4m8j-SmHT-XROoBo4RdEN5sNzZoQEdRhlyIylSZmrcafFT1lxfqug7VLYQ0l0kfn1nFtr7WaffOfhRu-GLwAZAkPwwTDNQ3zfrLi5-xqtwp_ZogOAU31GXgnpNFODa_QyFsSDIFocj1ORRf-k9Nnk6hOb6lLyBa0WQBYNm5-q7nMg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-tertiary/60 to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+<div class="flex gap-2">
+<span class="bg-primary-container text-on-primary-container font-label-sm text-label-sm px-3 py-1 rounded-full backdrop-blur-sm bg-opacity-90">Healthy</span>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-lowest/20 backdrop-blur-md flex items-center justify-center text-on-secondary hover:bg-surface-container-lowest/40 transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Card Body -->
+<div class="p-6 flex flex-col gap-4">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">North Block A</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+                            Sector 4, Valley Farm
+                        </p>
+</div>
+<div class="h-[1px] w-full bg-surface-variant"></div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Crop</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">grass</span>
+                                Winter Wheat
+                            </span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Size</span>
+<span class="font-body-md text-body-md text-on-surface font-medium">124.5 ha</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Field Card 2 -->
+<div class="bg-surface-container-lowest rounded-[24px] shadow-[0_8px_24px_-4px_rgba(23,52,28,0.06)] overflow-hidden flex flex-col group hover:-translate-y-1 transition-transform duration-300 cursor-pointer">
+<div class="h-40 relative bg-surface-variant w-full overflow-hidden">
+<img alt="Map view of Riverside Plot" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" data-alt="A stylized satellite map view of an irregularly shaped farm field bordering a small river. The terrain shows subtle variations in green and light brown, indicating different soil types or crop growth stages. The style is clean, modern, and slightly desaturated to fit a minimalist UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8sClUhOmTHQ82kTv_UGNTiRrM6a8WFp-O5BjBJfs5UinzPBhxz9-jlABmR0zsLS7VT5NPwZX_L6bg0F_G7a1V5MSEQ6hWCj9-ay5jv7GzxAe10xOhjvzVAb0hlEeSQWUu2x90r6LMDucW22VDP4g7rlSc86r6yQBgCdf9HMQB6-8Z3T8dHyAMTPaOfFfmy6pg73xPZa6xa7lM1Og7SEkKWjl1obhSCeDAEnYRU_8cGpjWLX6runq7_Q"/>
+<div class="absolute inset-0 bg-gradient-to-t from-tertiary/60 to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+<div class="flex gap-2">
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-3 py-1 rounded-full backdrop-blur-sm bg-opacity-90">Attention Needed</span>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-lowest/20 backdrop-blur-md flex items-center justify-center text-on-secondary hover:bg-surface-container-lowest/40 transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<div class="p-6 flex flex-col gap-4">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Riverside Plot</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+                            Sector 2, East Bank
+                        </p>
+</div>
+<div class="h-[1px] w-full bg-surface-variant"></div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Crop</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">local_florist</span>
+                                Soybeans
+                            </span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Size</span>
+<span class="font-body-md text-body-md text-on-surface font-medium">85.2 ha</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Field Card 3 -->
+<div class="bg-surface-container-lowest rounded-[24px] shadow-[0_8px_24px_-4px_rgba(23,52,28,0.06)] overflow-hidden flex flex-col group hover:-translate-y-1 transition-transform duration-300 cursor-pointer">
+<div class="h-40 relative bg-surface-variant w-full overflow-hidden">
+<img alt="Map view of Pivot South" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" data-alt="A clean, minimalist satellite rendering of a circular center-pivot irrigation field. The field is a vibrant, uniform green set against a slightly drier, beige surrounding terrain. The aesthetic is highly organized and professional, matching the organic minimalism of a modern farm management application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjc4tFoXiG84rtuw0PKUonmm_3VA2XqTde79oWsdK9qXTqmGWln0oJI4W8OdohOmPu1Dj7YjDM_kdC1m4v-cwDt5XMxeQAFbnibxt2a75Ag0f4wBUGsP_qfGe-Q01tWaQzyGBzzgHrOg4GQy1u7YOhczRCU6awoZnongy65VPHM05SB00sc53ndt9LnEUN0PuL5Dq8Ctfxtq_GRT8_sRVhxRd2HJZYrtinW-QwfdngZ928b6SPT02crQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-tertiary/60 to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+<div class="flex gap-2">
+<span class="bg-surface-variant text-on-surface-variant font-label-sm text-label-sm px-3 py-1 rounded-full backdrop-blur-sm bg-opacity-90 border border-outline-variant">Fallow</span>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-lowest/20 backdrop-blur-md flex items-center justify-center text-on-secondary hover:bg-surface-container-lowest/40 transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<div class="p-6 flex flex-col gap-4">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Pivot South</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+                            Sector 7, Lower Basin
+                        </p>
+</div>
+<div class="h-[1px] w-full bg-surface-variant"></div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Crop</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">horizontal_rule</span>
+                                None (Cover)
+                            </span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Size</span>
+<span class="font-body-md text-body-md text-on-surface font-medium">110.0 ha</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl bg-surface dark:bg-surface-dim shadow-[0_-4px_16px_0_rgba(23,52,28,0.06)] h-20 flex justify-around items-center px-margin-mobile pb-safe">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-150 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+<span class="font-label-sm text-[11px]">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-150 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">cloud</span>
+<span class="font-label-sm text-[11px]">Weather</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-150 p-2 rounded-lg" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">trending_up</span>
+<span class="font-label-sm text-[11px]">Market</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">agriculture</span>
+<span class="font-label-sm text-[11px] font-bold">Fields</span>
+</a>
+</nav>
+</body></html>

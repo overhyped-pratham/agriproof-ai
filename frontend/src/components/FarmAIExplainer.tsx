@@ -7,15 +7,11 @@ import {
   RefreshCw,
   Send,
   CheckCircle,
-  AlertTriangle,
-  Info,
   ChevronDown,
   ChevronUp,
   Droplets,
   Sprout,
   ShieldCheck,
-  Calendar,
-  Layers,
   Copy,
   Check,
   MessageSquare,
@@ -58,7 +54,7 @@ export const FarmAIExplainer: React.FC<FarmAIExplainerProps> = ({ farm, analysis
   const [loading, setLoading] = useState<boolean>(false);
   const [language, setLanguage] = useState<string>('en');
   const [tone, setTone] = useState<string>('farmer_simple');
-  const [customPrompt, setCustomPrompt] = useState<string>('');
+  const [customPrompt, _setCustomPrompt] = useState<string>('');
   
   // Q&A Chat State
   const [chatQuestion, setChatQuestion] = useState<string>('');

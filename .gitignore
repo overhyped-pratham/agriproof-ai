@@ -67,3 +67,7 @@ backend/*.db
 backend/data/*.db
 *.sqlite
 *.sqlite3
+
+# Generated analysis results
+backend/static/results/
+

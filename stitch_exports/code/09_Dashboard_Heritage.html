@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Farmer Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "error": "#ba1a1a",
+                "deep-saffron": "#FF9933",
+                "sand-warm": "#FAF3E0",
+                "surface-variant": "#ede0d9",
+                "inverse-surface": "#362f2a",
+                "on-tertiary-fixed": "#351000",
+                "on-primary-fixed": "#2f1500",
+                "on-tertiary-container": "#6c2a00",
+                "surface-container-highest": "#ede0d9",
+                "on-secondary-fixed": "#400200",
+                "on-surface-variant": "#564334",
+                "on-secondary": "#ffffff",
+                "background": "#fff8f5",
+                "primary-fixed-dim": "#ffb77d",
+                "on-background": "#211a16",
+                "secondary-fixed": "#ffdad4",
+                "surface-bright": "#fff8f5",
+                "surface-container-low": "#fff1ea",
+                "tertiary-fixed": "#ffdbcc",
+                "on-secondary-fixed-variant": "#7c2d21",
+                "inverse-primary": "#ffb77d",
+                "on-tertiary-fixed-variant": "#7a3000",
+                "surface-tint": "#904d00",
+                "tertiary": "#a04100",
+                "clay-wash": "#E8DCC4",
+                "outline-variant": "#ddc1ae",
+                "outline": "#897362",
+                "marigold": "#FFB300",
+                "primary-fixed": "#ffdcc3",
+                "on-error": "#ffffff",
+                "on-primary-container": "#623200",
+                "surface-dim": "#e5d7d0",
+                "surface": "#fff8f5",
+                "surface-container": "#f9ebe4",
+                "on-primary-fixed-variant": "#6e3900",
+                "terracotta": "#B35A38",
+                "primary": "#904d00",
+                "tertiary-fixed-dim": "#ffb693",
+                "tertiary-container": "#ff8a4c",
+                "on-error-container": "#93000a",
+                "on-surface": "#211a16",
+                "surface-container-lowest": "#ffffff",
+                "on-secondary-container": "#75271c",
+                "primary-container": "#ff8c00",
+                "secondary-fixed-dim": "#ffb4a7",
+                "inverse-on-surface": "#fceee7",
+                "error-container": "#ffdad6",
+                "on-tertiary": "#ffffff",
+                "on-primary": "#ffffff",
+                "secondary-container": "#fd907e",
+                "secondary": "#9b4336",
+                "surface-container-high": "#f3e6de"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "stack-md": "20px",
+                "container-padding": "20px",
+                "margin-mobile": "24px",
+                "stack-sm": "8px",
+                "stack-lg": "40px",
+                "base": "8px",
+                "gutter-mobile": "16px"
+        },
+        "fontFamily": {
+                "body-md": [
+                        "Be Vietnam Pro"
+                ],
+                "headline-md": [
+                        "Be Vietnam Pro"
+                ],
+                "headline-lg-mobile": [
+                        "Be Vietnam Pro"
+                ],
+                "body-lg": [
+                        "Be Vietnam Pro"
+                ],
+                "data-display": [
+                        "Be Vietnam Pro"
+                ],
+                "label-sm": [
+                        "Be Vietnam Pro"
+                ],
+                "headline-lg": [
+                        "Be Vietnam Pro"
+                ]
+        },
+        "fontSize": {
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-md": [
+                        "22px",
+                        {
+                                "lineHeight": "30px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-lg-mobile": [
+                        "28px",
+                        {
+                                "lineHeight": "36px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "800"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "data-display": [
+                        "36px",
+                        {
+                                "lineHeight": "44px",
+                                "fontWeight": "800"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.06em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-lg": [
+                        "34px",
+                        {
+                                "lineHeight": "42px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "800"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+      background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(144, 77, 0, 0.03) 10px, rgba(144, 77, 0, 0.03) 20px);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pt-16 pb-24 md:pb-8 flex flex-col items-center">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-surface-dim shadow-sm transition-opacity duration-200">
+<div class="flex justify-between items-center px-margin-mobile h-16 w-full max-w-4xl mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-high flex items-center justify-center">
+<img alt="Farmer Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsYzmg2-oRUKxlRSys65wqh7qPOrFSIgevNKI082R20xRsx-4qSzoHOV9ziCUxx5XY4b3FqSEgtj5DI8sWvBJiLsmqEvnPrVNmsSB0--TvNLiLhDcQRJDYtBIwMOtcnMZ0g3X3TURduyvLJ_JAo2PBRTgV8xWNIxj1xf3iLeaijH4b4czNtJxCUyXftV8lWFixohteIFlBT6zPCB4SuhQ2t3QRu9SpjWWqTHuf_2K7KKVJO8AJpqbmOA"/>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary dark:text-primary-fixed-dim hidden md:block">Terraform</h1>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary dark:text-primary-fixed-dim md:hidden">Terraform</h1>
+<button class="text-on-surface-variant dark:text-on-surface-variant hover:opacity-80 transition-opacity duration-200 w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-container-high active:scale-95">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">notifications</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="w-full max-w-4xl px-margin-mobile flex flex-col gap-stack-lg mt-stack-md">
+<!-- Greeting -->
+<section class="mt-stack-sm">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-primary">Good morning, Marcus</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-stack-sm">Here's the latest update from your fields.</p>
+</section>
+<!-- Bento Grid Layout for Dashboard Widgets -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-base auto-rows-[minmax(180px,auto)]">
+<!-- Soil Moisture Widget (Span 4 cols on desktop) -->
+<div class="md:col-span-4 bg-surface-container-lowest rounded-xl shadow-[0_4px_16px_0_rgba(23,52,28,0.06)] p-stack-md flex flex-col justify-between">
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">water_drop</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Avg Moisture</h3>
+</div>
+<div class="flex items-end justify-between mt-stack-md">
+<div>
+<span class="font-data-display text-data-display text-primary">42%</span>
+<span class="font-body-md text-body-md text-on-surface-variant ml-1">Optimal</span>
+</div>
+<!-- Simple CSS Gauge approximation -->
+<div class="relative w-16 h-16 rounded-full border-4 border-surface-container-highest flex items-center justify-center">
+<svg class="absolute inset-0 w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-deep-saffron stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="42, 100" stroke-width="4"></path>
+</svg>
+</div>
+</div>
+</div>
+<!-- Active Fields Summary (Span 8 cols on desktop) -->
+<div class="md:col-span-8 bg-surface-container-lowest rounded-xl shadow-[0_4px_16px_0_rgba(23,52,28,0.06)] p-stack-md">
+<div class="flex justify-between items-center mb-stack-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">agriculture</span>
+                        Active Fields
+                    </h3>
+<button class="font-label-sm text-label-sm text-primary hover:underline">View All</button>
+</div>
+<div class="flex flex-col gap-2 mt-stack-sm">
+<!-- Field Item 1 -->
+<div class="flex justify-between items-center p-3 rounded-lg hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A lush, green cornfield stretching towards the horizon under a bright, clear blue sky. The lighting is crisp and natural, highlighting the vibrant green stalks. The aesthetic is clean, modern agriculture with a focus on healthy, thriving crops. Shot with a slight depth of field to emphasize the foreground plants." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBodK0H0tc2Rc29kcCH_Ew5os8t7qSi3HI7g-lhpBNsIrif9mWm3NvyD1-mF30pASRTRnUCfhmWq5Ax3uoW_W7K9N94Hqmi1_udW5px-K-CCmFa6ZZ0rRyvHIKP5CBDnFTwYgX2d6mvb_bYZIoVv_L5I7u5Lo0VWNGu8ugYsCNoBKDCNtYPb4i711SlnmoupoJLQcDE4FNyJn0-0F7oLTsHGevXGZuLCs2on2Z2h3o5PKylh6ECb-XDNA"/>
+</div>
+<div>
+<h4 class="font-body-md text-body-md font-semibold text-on-surface">Corn Field A</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">North Sector</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-surface-container text-marigold rounded-full font-label-sm text-label-sm flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-marigold inline-block"></span> Healthy
+                        </span>
+</div>
+<!-- Field Item 2 -->
+<div class="flex justify-between items-center p-3 rounded-lg hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A wheat field showing signs of slight dryness, with golden-brown stalks needing water. The lighting is warm but slightly harsh, indicating a dry afternoon. The mood is observant and pragmatic, reflecting modern agricultural monitoring. The shot focuses on the texture of the soil and the base of the plants." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGlCVwtYyYGqtnMBIIuQhMyN97ekwgmMaz8ZDjP3rmPC21qeuWFJvATqsBSJFy3yXmUraeZg_8SVtde-4paTU1GtR_rF8gdxxVrubGvSZMzr4_rHy7sfgY6e6TFQ51ldUq1P8qrsYBNUPJNNEa3M8uI3P_SSdypxm9edyw_A2SaMEf2ERbjnj19v43Z6NUEc8lmW3RPBE53K6eWW53N5xO23JY3hkdt51O-OBDgs6_dj1ZpS9Ij8eM9A"/>
+</div>
+<div>
+<h4 class="font-body-md text-body-md font-semibold text-on-surface">Wheat Field B</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">East Sector</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-surface-container text-terracotta rounded-full font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">warning</span> Needs Irrigation
+                        </span>
+</div>
+</div>
+</div>
+<!-- Recent Alerts (Span 12 cols) -->
+<div class="md:col-span-12 bg-surface-container-lowest rounded-xl shadow-[0_4px_16px_0_rgba(23,52,28,0.06)] p-stack-md">
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2 mb-stack-sm">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">campaign</span>
+                    Recent Alerts
+                </h3>
+<div class="flex flex-col border border-surface-variant rounded-lg overflow-hidden">
+<!-- Alert Item -->
+<div class="p-4 border-b border-surface-variant bg-error-container bg-opacity-20 flex gap-4">
+<span class="material-symbols-outlined text-error mt-1" style="font-variation-settings: 'FILL' 1;">device_thermostat</span>
+<div>
+<h4 class="font-body-md text-body-md font-semibold text-on-surface">Frost Warning</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Expected temperature drop below 32°F tonight in the East Valley. Recommend deploying thermal covers.</p>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-2 block">2 hours ago</span>
+</div>
+</div>
+<!-- Info Item -->
+<div class="p-4 flex gap-4 hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-secondary mt-1" style="font-variation-settings: 'FILL' 1;">local_shipping</span>
+<div>
+<h4 class="font-body-md text-body-md font-semibold text-on-surface">Fertilizer Delivery</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Shipment of NPK blend arrived at Storage Silo 2.</p>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-2 block">Yesterday</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-margin-mobile pb-safe bg-surface dark:bg-surface-dim shadow-[0_-4px_16px_0_rgba(23,52,28,0.06)] rounded-t-xl z-50 md:hidden">
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 hover:opacity-80 transition-opacity duration-200 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-sm text-label-sm mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors hover:opacity-80 transition-opacity duration-200 active:scale-95 transition-transform duration-150 rounded-lg p-2" href="#">
+<span class="material-symbols-outlined">cloud</span>
+<span class="font-label-sm text-label-sm mt-1">Weather</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors hover:opacity-80 transition-opacity duration-200 active:scale-95 transition-transform duration-150 rounded-lg p-2" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<span class="font-label-sm text-label-sm mt-1">Market</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors hover:opacity-80 transition-opacity duration-200 active:scale-95 transition-transform duration-150 rounded-lg p-2" href="#">
+<span class="material-symbols-outlined">agriculture</span>
+<span class="font-label-sm text-label-sm mt-1">Fields</span>
+</a>
+</nav>
+</body></html>

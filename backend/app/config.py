@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     sentinel_hub_client_secret: str = ""
     sentinel_hub_instance_id: str = ""
     open_meteo_base_url: str = "https://api.open-meteo.com/v1"
+    open_meteo_api_key: str = ""
     circuits_dir: str = "../circuits"
     app_env: str = "development"
     cors_origins: str = '["http://localhost:5173","http://localhost:3000","http://127.0.0.1:5173"]'

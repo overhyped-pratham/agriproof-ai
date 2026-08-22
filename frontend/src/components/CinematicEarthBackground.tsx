@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { 
-  Globe, 
   Satellite as SatelliteIcon, 
-  Layers, 
   ZoomIn, 
   ZoomOut, 
   RotateCcw, 
@@ -137,11 +135,10 @@ export default function CinematicEarthBackground({
   const [showOrbits, setShowOrbits] = useState<boolean>(true);
   const [selectedHotspot, setSelectedHotspot] = useState<TelemetryHotspot | null>(null);
   const [hoveredHotspot, setHoveredHotspot] = useState<TelemetryHotspot | null>(null);
-  const [currentZoom, setCurrentZoom] = useState<number>(5.2);
+  const [_currentZoom, setCurrentZoom] = useState<number>(5.2);
 
   // References for three.js manipulation outside the animation loop
   const earthMeshRef = useRef<THREE.Mesh | null>(null);
-  const cloudsMeshRef = useRef<THREE.Mesh | null>(null);
   const atmosphereMeshRef = useRef<THREE.Mesh | null>(null);
   const satGroupRef = useRef<THREE.Group | null>(null);
   const hotspotsGroupRef = useRef<THREE.Group | null>(null);
@@ -274,7 +271,7 @@ export default function CinematicEarthBackground({
         pathPoints: [number, number][], 
         baseColor: string, 
         vegetationColor: string, 
-        desertColor?: string
+        _desertColor?: string
       ) => {
         ctx.save();
         ctx.beginPath();
@@ -740,12 +737,13 @@ export default function CinematicEarthBackground({
     earthMesh.add(satGroup);
     satGroupRef.current = satGroup;
 
+
     function createSatellite(
       orbitRadius: number, 
       inclination: number, 
       speed: number, 
       colorHex: number,
-      name: string
+      _name?: string
     ) {
       const satRoot = new THREE.Group();
       satRoot.rotation.x = inclination;

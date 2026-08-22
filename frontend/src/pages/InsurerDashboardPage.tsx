@@ -136,7 +136,7 @@ export default function InsurerDashboardPage() {
             <Coins className="w-4 h-4 text-emerald-400" /> TOTAL INSURED POOL
           </span>
           <div className="text-2xl font-bold text-white">
-            ${(summary.total_insured_value_usd / 1000000).toFixed(2)}M USD
+            ₹{((summary.total_insured_value_usd * 83) / 10000000).toFixed(2)} Cr INR
           </div>
           <span className="text-[11px] text-slate-400">{summary.active_policies_count} Underwritten Policies</span>
         </div>
@@ -146,7 +146,7 @@ export default function InsurerDashboardPage() {
             <TrendingUp className="w-4 h-4 text-primary-400" /> TOTAL PAYOUTS SETTLED
           </span>
           <div className="text-2xl font-bold text-primary-400">
-            ${(summary.total_payouts_disbursed_usd / 1000).toFixed(0)}k USDC
+            ₹{((summary.total_payouts_disbursed_usd * 83) / 100000).toFixed(1)} Lakh INR
           </div>
           <span className="text-[11px] text-emerald-400">Avg Settlement: {summary.automated_settlement_avg_seconds}s</span>
         </div>
@@ -213,7 +213,7 @@ export default function InsurerDashboardPage() {
                   </div>
                   <div className="flex justify-between text-slate-300">
                     <span className="text-slate-400">Settled Payouts:</span>
-                    <span className="text-primary-400 font-bold">${(reg.payouts_disbursed_usd / 1000).toFixed(0)}k</span>
+                    <span className="text-primary-400 font-bold">₹{((reg.payouts_disbursed_usd * 83) / 1000).toFixed(0)}k</span>
                   </div>
                 </div>
 
@@ -235,7 +235,7 @@ export default function InsurerDashboardPage() {
         <div className="lg:col-span-5 bg-dark-800 p-5 rounded-2xl border border-dark-700 space-y-4 shadow-lg">
           <div className="flex items-center justify-between border-b border-dark-700 pb-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Layers className="w-4 h-4 text-emerald-400" /> Coverage vs Settled Payouts ($k)
+              <Layers className="w-4 h-4 text-emerald-400" /> Coverage vs Settled Payouts (₹k)
             </h3>
             <span className="text-[11px] font-mono text-slate-400">By Region</span>
           </div>
@@ -249,8 +249,8 @@ export default function InsurerDashboardPage() {
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px' }}
                 />
-                <Bar dataKey="coverage" fill="#10b981" radius={[4, 4, 0, 0]} name="Insured Pool ($k)" />
-                <Bar dataKey="payouts" fill="#38bdf8" radius={[4, 4, 0, 0]} name="Payouts ($k)" />
+                <Bar dataKey="coverage" fill="#10b981" radius={[4, 4, 0, 0]} name="Insured Pool (₹k)" />
+                <Bar dataKey="payouts" fill="#38bdf8" radius={[4, 4, 0, 0]} name="Payouts (₹k)" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -282,7 +282,7 @@ export default function InsurerDashboardPage() {
               className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-primary-600 hover:from-emerald-500 hover:to-primary-500 text-white text-xs font-bold font-mono rounded-xl shadow-lg shadow-emerald-950/50 flex items-center gap-2 transition disabled:opacity-50"
             >
               <Coins className="w-4 h-4" />
-              {disbursing ? 'Settling On-Chain...' : 'Execute Smart Contract Payout ($3,500 USDC)'}
+              {disbursing ? 'Settling On-Chain...' : 'Execute Smart Contract Payout (₹2,90,500)'}
             </button>
           </div>
         </div>
@@ -317,7 +317,7 @@ export default function InsurerDashboardPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-300 text-[11px]">
               <div>Tx Hash: <span className="text-primary-300">{payoutResult.transaction_hash}</span></div>
-              <div>Disbursed: <strong className="text-white">${payoutResult.payout_amount_usdc} USDC</strong></div>
+              <div>Disbursed: <strong className="text-white">₹{payoutResult.payout_amount_usdc ? (payoutResult.payout_amount_usdc * 83).toLocaleString('en-IN') : '2,90,500'} INR</strong></div>
               <div>Token: <span className="text-slate-400">{payoutResult.token_contract}</span></div>
               <div>Recipient: <span className="text-slate-400">{payoutResult.recipient_wallet}</span></div>
             </div>

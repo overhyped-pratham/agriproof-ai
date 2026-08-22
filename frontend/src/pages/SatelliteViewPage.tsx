@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Layers, Sliders, Mountain, Sprout, Calendar, Sparkles, X, CheckCircle2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Layers, Sliders, Mountain, Sprout, X } from 'lucide-react';
 import FarmMap, { FarmPlot } from '../components/FarmMap';
 import AnalysisPipelineSnapshots from '../components/AnalysisPipelineSnapshots';
 import LandSatelliteAnalysis from '../components/LandSatelliteAnalysis';
+import VariabilityInsightsStudio from '../components/VariabilityInsightsStudio';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { api, Farm } from '../lib/api';
 
@@ -15,6 +16,7 @@ export default function SatelliteViewPage() {
   const [layer, setLayer]               = useState('ndvi');
   const [showSnapshots, setShowSnapshots] = useState(false);
   const [showLandAnalysis, setShowLandAnalysis] = useState(false);
+  const [showVariabilityStudio, setShowVariabilityStudio] = useState(false);
   const [selectedPlot, setSelectedPlot] = useState<FarmPlot | null>(null);
   const [showPlotDrawer, setShowPlotDrawer] = useState(true);
 
@@ -89,13 +91,12 @@ export default function SatelliteViewPage() {
   }, [farm, analysis]);
 
   const layers = [
-    { id: 'truecolor', name: 'True Color' },
-    { id: 'cloudmask', name: 'Cloud Mask' },
-    { id: 'ndvi',      name: 'NDVI (Vegetation)' },
-    { id: 'evi',       name: 'EVI (Enhanced)' },
-    { id: 'ndwi',      name: 'NDWI (Water)' },
-    { id: 'threshold', name: 'Threshold Mask' },
-    { id: 'vector',    name: 'Vector Extent' },
+    { id: 'ndvi',        name: 'NDVI (Vegetation)' },
+    { id: 'ndmi',        name: 'NDMI (Moisture)' },
+    { id: 'falsecolor',  name: 'Classified False-Color' },
+    { id: 'cir',         name: 'CIR (Infrared)' },
+    { id: 'preevent',    name: 'Pre-Event Peak' },
+    { id: 'variability', name: '3D Productivity Zones' },
   ];
 
   // Build a small bounding box around the farm center for the map
@@ -138,8 +139,25 @@ export default function SatelliteViewPage() {
         <div className="flex items-center gap-2.5 pointer-events-auto">
           <button
             onClick={() => {
+              setShowVariabilityStudio(!showVariabilityStudio);
+              if (showLandAnalysis) setShowLandAnalysis(false);
+              if (showSnapshots) setShowSnapshots(false);
+            }}
+            className={`px-3.5 py-2 rounded-lg border shadow-lg backdrop-blur text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+              showVariabilityStudio
+                ? 'bg-primary-600 border-primary-500 text-white shadow-[0_0_12px_rgba(0,163,255,0.4)]'
+                : 'bg-dark-900/90 border-primary-500/50 text-primary-300 hover:text-white'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            {showVariabilityStudio ? 'Close Variability Studio' : '3D Variability Studio'}
+          </button>
+
+          <button
+            onClick={() => {
               setShowLandAnalysis(!showLandAnalysis);
               if (showSnapshots) setShowSnapshots(false);
+              if (showVariabilityStudio) setShowVariabilityStudio(false);
             }}
             className={`px-3.5 py-2 rounded-lg border shadow-lg backdrop-blur text-xs font-semibold flex items-center gap-1.5 transition-colors ${
               showLandAnalysis
@@ -155,6 +173,7 @@ export default function SatelliteViewPage() {
             onClick={() => {
               setShowSnapshots(!showSnapshots);
               if (showLandAnalysis) setShowLandAnalysis(false);
+              if (showVariabilityStudio) setShowVariabilityStudio(false);
             }}
             className={`px-3.5 py-2 rounded-lg border shadow-lg backdrop-blur text-xs font-semibold flex items-center gap-1.5 transition-colors ${
               showSnapshots
@@ -175,6 +194,13 @@ export default function SatelliteViewPage() {
           )}
         </div>
       </div>
+
+      {/* Slide-down 3D Variability Studio Drawer */}
+      {showVariabilityStudio && farmId && (
+        <div className="absolute top-20 left-4 right-4 bottom-12 z-[1000] bg-dark-900/95 border border-primary-500/40 p-6 rounded-2xl shadow-2xl backdrop-blur-md overflow-y-auto animate-in fade-in slide-in-from-top-4 duration-200">
+          <VariabilityInsightsStudio farmId={farmId} farm={farm} analysis={analysis} />
+        </div>
+      )}
 
       {/* Slide-down Snapshot Pipeline Drawer */}
       {showSnapshots && (
@@ -210,6 +236,9 @@ export default function SatelliteViewPage() {
           readOnly 
           plots={farmPlots}
           onSelectPlot={(plot) => setSelectedPlot(plot)}
+          activeLayer={layer}
+          damageSeverity={analysis?.risk_category === 'HIGH' ? 'CRITICAL' : 'HIGH'}
+          showDamageOverlay={layer === 'threshold'}
         />
 
         {/* Dynamic Multi-Spectral & Mask Overlays matching the snapshots */}

@@ -103,11 +103,11 @@ export default function LandingPage() {
               className="flex flex-wrap items-center justify-center gap-4 z-20"
             >
               <Link
-                to="/register"
+                to="/onboard"
                 className="neon-button px-8 py-4 rounded-xl font-label-caps text-sm font-bold tracking-[0.15em] flex items-center gap-3 group"
               >
                 <Satellite className="w-5 h-5 text-secondary-fixed group-hover:rotate-45 transition-transform" />
-                <span>INITIALIZE SENSORS</span>
+                <span>GET STARTED</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               
@@ -446,10 +446,10 @@ export default function LandingPage() {
 
             <div className="mt-10 text-center">
               <Link
-                to="/register"
+                to="/onboard"
                 className="inline-flex items-center gap-3 px-8 py-4 neon-button font-label-caps text-xs font-bold tracking-wider rounded-xl uppercase"
               >
-                <span>Initialize Farm Registration</span>
+                <span>Start Farm Analysis</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
