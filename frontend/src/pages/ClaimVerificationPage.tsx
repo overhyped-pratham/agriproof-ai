@@ -1,20 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { api, Claim, Farm, VerificationResult, ClaimPayoutEstimate } from '../lib/api';
+import { api, Claim, Farm, VerificationResult } from '../lib/api';
 import ZKProofCard from '../components/ZKProofCard';
-import { Copy, FileJson, RefreshCw, Hash, ShieldCheck, ShieldX, Printer, CheckCircle, Award, Satellite, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Copy, FileJson, RefreshCw, Hash, Database, ShieldCheck, ShieldX, Printer, CheckCircle, Award, Satellite, Sparkles, Bot, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export default function ClaimVerificationPage() {
   const { claimId } = useParams<{ claimId: string }>();
   const [claim, setClaim]                         = useState<Claim | null>(null);
   const [farm, setFarm]                           = useState<Farm | null>(null);
-  const [estimate, setEstimate]                   = useState<ClaimPayoutEstimate | null>(null);
   const [verifying, setVerifying]                 = useState(false);
   const [verifyResult, setVerifyResult]           = useState<VerificationResult | null>(null);
   const [showJson, setShowJson]                   = useState(false);
   const [showAiBreakdown, setShowAiBreakdown]     = useState(true);
-  const [showTechDetails, setShowTechDetails]     = useState(false);
 
   const fetchClaim = async () => {
     if (!claimId) return;
@@ -25,9 +23,6 @@ export default function ClaimVerificationPage() {
         try {
           const farmRes = await api.farms.get(res.data.farm_id);
           setFarm(farmRes.data);
-          api.claims.getEstimate(res.data.farm_id)
-            .then(estRes => setEstimate(estRes.data))
-            .catch(() => {});
         } catch (farmErr) {
           console.warn('[ClaimVerificationPage] Failed to fetch farm details:', farmErr);
         }
@@ -50,6 +45,7 @@ export default function ClaimVerificationPage() {
         valid: false,
         claim_id: claimId,
         farm_id: claim?.farm_id || '',
+        payout_amount: claim?.payout_amount || 0,
         block_hash: '',
         payout_eligible: false,
         zk_proof_valid: false,
@@ -205,126 +201,72 @@ export default function ClaimVerificationPage() {
           />
         </div>
 
-        {/* Right: Friendly Claim Summary & Collapsible Technical Details */}
+        {/* Right: Technical Details */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Claim Summary Card */}
-          <div className="bg-dark-800 rounded-2xl border border-dark-700 p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-dark-700 pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <span>Settlement Status</span>
-              </h3>
-              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                claim.eligible ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300'
-              }`}>
-                {claim.eligible ? 'Approved for Payout' : 'Not Triggered'}
-              </span>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center py-1 border-b border-dark-700/60">
-                <span className="text-slate-400">Farm / Parcel</span>
-                <span className="font-bold text-white">{farm?.name || 'Registered Farm'}</span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-dark-700/60">
-                <span className="text-slate-400">Crop Monitored</span>
-                <span className="font-bold text-primary-300 capitalize">{farm?.crop_type || 'Wheat'}</span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-dark-700/60">
-                <span className="text-slate-400">Insured Area</span>
-                <span className="font-mono text-slate-200">{farm?.area_hectares ? `${farm.area_hectares.toFixed(2)} Ha` : '0.50 Ha'}</span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-dark-700/60">
-                <span className="text-slate-400">Satellite Sensor</span>
-                <span className="font-mono text-slate-200">Sentinel-2A/B (10m L2A)</span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-dark-700/60">
-                <span className="text-slate-400">Privacy Mode</span>
-                <span className="font-bold text-emerald-400 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Zero-Knowledge (Active)
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-dark-700/60">
-                <span className="text-slate-400">Ledger Block</span>
-                <span className="font-mono text-slate-200">Block #{claim.block_index} (Verified)</span>
-              </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-slate-400">Parametric Compensation</span>
-                <span className="font-bold text-emerald-400 text-sm font-mono">
-                  ₹{(estimate?.estimated_payout_amount || (farm?.area_hectares ? Math.round(farm.area_hectares * 50000 * 0.75) : 58400)).toLocaleString('en-IN')}
-                </span>
-              </div>
-            </div>
-
-            {claim.eligible && (
-              <div className="space-y-2.5 pt-2 border-t border-dark-700/60">
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between font-bold text-emerald-400">
-                    <span>Direct Benefit Transfer (DBT)</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20">SENT TO FARMER ✓</span>
-                  </div>
-                  <p className="text-[11px] text-slate-300">
-                    Credited to farmer bank account (Bank of India · •••• 4912) linked via Aadhaar Payment Bridge.
-                  </p>
-                  <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between pt-1">
-                    <span>UTR: UTR20260822-{claim.claim_id.replace('CLM-', '')}</span>
-                    <span className="text-emerald-400">📲 SMS Delivered</span>
+          {/* Cryptographic Hashes */}
+          <div className="bg-dark-800 rounded-xl border border-dark-700 p-6 shadow-md">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Hash className="w-5 h-5 text-slate-400" /> Cryptographic Proofs
+            </h3>
+            <div className="space-y-4 font-mono text-sm">
+              {[
+                { label: 'Satellite Evidence Hash', value: claim.satellite_evidence_hash, color: 'text-slate-300' },
+                { label: 'AI Prediction Hash',      value: claim.prediction_hash,         color: 'text-slate-300' },
+                { label: 'ZK SNARK Proof Hash',     value: claim.zk_proof_hash,           color: 'text-primary-400 font-bold' },
+              ].map(({ label, value, color }) => (
+                <div key={label}>
+                  <p className="text-slate-500 mb-1 text-xs uppercase tracking-wider">{label}</p>
+                  <div className="flex items-center gap-2 bg-dark-900 p-2 rounded border border-dark-600">
+                    <span className={`${color} truncate flex-1`}>{value}</span>
+                    <button onClick={() => copyToClipboard(value)} className="text-slate-500 hover:text-white shrink-0">
+                      <Copy className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
 
-          {/* Collapsible Technical Cryptographic Details */}
-          <div className="bg-dark-800 rounded-2xl border border-dark-700 overflow-hidden shadow-md">
-            <button
-              onClick={() => setShowTechDetails(!showTechDetails)}
-              className="w-full p-4 text-left flex items-center justify-between text-xs font-bold text-slate-300 hover:text-white hover:bg-dark-700/50 transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <Hash className="w-4 h-4 text-slate-400" />
-                <span>Advanced Cryptographic Hashes &amp; Proofs</span>
-              </span>
-              {showTechDetails ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-            </button>
-
-            {showTechDetails && (
-              <div className="p-5 border-t border-dark-700 space-y-4 text-xs font-mono">
-                {[
-                  { label: 'Satellite Evidence Hash', value: claim.satellite_evidence_hash, color: 'text-slate-300' },
-                  { label: 'AI Prediction Hash',      value: claim.prediction_hash,         color: 'text-slate-300' },
-                  { label: 'ZK SNARK Proof Hash',     value: claim.zk_proof_hash,           color: 'text-primary-400 font-bold' },
-                  { label: 'Block Hash',              value: claim.block_hash,              color: 'text-slate-300' },
-                ].map(({ label, value, color }) => (
-                  <div key={label}>
-                    <p className="text-slate-500 mb-1 text-[10px] uppercase tracking-wider">{label}</p>
-                    <div className="flex items-center gap-2 bg-dark-900 p-2 rounded-lg border border-dark-700">
-                      <span className={`${color} truncate flex-1`}>{value}</span>
-                      <button onClick={() => copyToClipboard(value)} className="text-slate-500 hover:text-white shrink-0">
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                <button
-                  onClick={() => setShowJson(!showJson)}
-                  className="w-full bg-dark-900 hover:bg-dark-700 border border-dark-700 text-slate-400 hover:text-slate-200 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-xs font-medium mt-3"
-                >
-                  <FileJson className="w-3.5 h-3.5" />
-                  {showJson ? 'Hide Raw JSON' : 'View Raw JSON'}
-                </button>
-
-                {showJson && (
-                  <div className="bg-dark-950 p-3 rounded-lg border border-dark-700 overflow-x-auto max-h-48">
-                    <pre className="text-[11px] text-emerald-400 font-mono">
-                      {JSON.stringify(claim, null, 2)}
-                    </pre>
-                  </div>
-                )}
+          {/* Ledger Details */}
+          <div className="bg-dark-800 rounded-xl border border-dark-700 p-6 shadow-md">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Database className="w-5 h-5 text-slate-400" /> Ledger Details
+            </h3>
+            <div className="space-y-3 font-mono text-sm">
+              <div className="flex justify-between border-b border-dark-700 pb-2">
+                <span className="text-slate-500">Block Index</span>
+                <span className="text-slate-200">#{claim.block_index}</span>
               </div>
-            )}
+              <div className="flex justify-between border-b border-dark-700 pb-2">
+                <span className="text-slate-500">Block Hash</span>
+                <span className="text-slate-200 truncate w-48 text-right" title={claim.block_hash || ''}>
+                  {(claim.block_hash || 'Pending').substring(0, 20)}…
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Previous Hash</span>
+                <span className="text-slate-200 truncate w-48 text-right" title={claim.previous_block_hash || ''}>
+                  {(claim.previous_block_hash || 'Genesis').substring(0, 20)}…
+                </span>
+              </div>
+            </div>
           </div>
+
+          <button
+            onClick={() => setShowJson(!showJson)}
+            className="w-full bg-dark-800 hover:bg-dark-700 border border-dark-600 text-slate-300 py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm font-medium"
+          >
+            <FileJson className="w-4 h-4" />
+            {showJson ? 'Hide Raw JSON' : 'View Raw JSON'}
+          </button>
+
+          {showJson && (
+            <div className="bg-dark-950 p-4 rounded-xl border border-dark-700 overflow-x-auto">
+              <pre className="text-xs text-emerald-400 font-mono">
+                {JSON.stringify(claim, null, 2)}
+              </pre>
+            </div>
+          )}
         </div>
       </div>
 
@@ -486,43 +428,6 @@ export default function ClaimVerificationPage() {
               <span className="text-slate-500 font-sans">Previous Block Hash:</span>
               <span className="col-span-2 text-slate-800 break-all">{claim.previous_block_hash}</span>
             </div>
-          </div>
-        </div>
-
-        {/* Direct Bank Compensation & Disbursement Details */}
-        <div className="border-2 border-emerald-600 rounded-lg p-4 mb-6 bg-emerald-50/50">
-          <div className="flex justify-between items-center border-b border-emerald-200 pb-2 mb-3">
-            <h3 className="text-xs font-black uppercase text-emerald-900 tracking-wider flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4 text-emerald-600" />
-              Direct Benefit Transfer (DBT) · Farmer Payout Disbursement
-            </h3>
-            <span className="bg-emerald-600 text-white font-bold text-[10px] px-2.5 py-0.5 rounded">
-              SETTLED &amp; DISBURSED ✓
-            </span>
-          </div>
-          <div className="grid grid-cols-4 gap-4 text-xs">
-            <div>
-              <p className="text-slate-500 font-medium">Beneficiary Farmer</p>
-              <p className="font-bold text-slate-900">{farm?.name || 'Registered Landholder'}</p>
-            </div>
-            <div>
-              <p className="text-slate-500 font-medium">Payment Channel</p>
-              <p className="font-bold text-slate-900">Aadhaar Payment Bridge (APB)</p>
-            </div>
-            <div>
-              <p className="text-slate-500 font-medium">Bank of India A/C</p>
-              <p className="font-mono font-bold text-slate-900">•••• •••• 4912</p>
-            </div>
-            <div>
-              <p className="text-slate-500 font-medium">Final Settled Amount</p>
-              <p className="font-mono font-black text-emerald-700 text-sm">
-                ₹{(estimate?.estimated_payout_amount || (farm?.area_hectares ? Math.round(farm.area_hectares * 50000 * 0.75) : 58400)).toLocaleString('en-IN')}
-              </p>
-            </div>
-          </div>
-          <div className="mt-2.5 pt-2 border-t border-emerald-200/60 text-[10px] text-slate-600 flex justify-between font-mono">
-            <span>Transaction UTR: UTR20260822-{claim.claim_id.replace('CLM-', '')}</span>
-            <span className="text-emerald-700 font-bold">📲 SMS Confirmation Sent to Farmer Mobile</span>
           </div>
         </div>
 

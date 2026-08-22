@@ -189,7 +189,7 @@ export default function SatelliteViewPage() {
             <div className="hidden xl:flex bg-dark-900/90 rounded-lg border border-dark-600 shadow-lg backdrop-blur px-3 py-2 text-xs text-slate-400 font-mono items-center gap-2">
               <span className="text-slate-200 font-semibold">{farm.name}</span>
               <span>·</span>
-              <span className="text-primary-400">{farm.area_hectares.toFixed(1)} ha</span>
+              <span className="text-primary-400">{(farm.area_hectares ?? 0).toFixed(1)} ha</span>
             </div>
           )}
         </div>
@@ -359,7 +359,7 @@ export default function SatelliteViewPage() {
             ].map(({ label, value, color }) => (
               <div key={label} className="bg-dark-800 rounded-lg p-2 border border-dark-700">
                 <div className="text-xs text-slate-400">{label}</div>
-                <div className={`text-lg font-bold ${color}`}>{value.toFixed(3)}</div>
+                <div className={`text-lg font-bold ${color}`}>{value != null ? value.toFixed(3) : '—'}</div>
               </div>
             ))}
           </div>

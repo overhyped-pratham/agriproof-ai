@@ -45,8 +45,8 @@ function getGeminiClient(): GoogleGenAI | null {
 }
 
 /**
- * Resilient Gemini generateContent helper with automatic multi-model fallback
- * and retry logic for high-demand spikes (503 / 429).
+ * Resilient Gemini generateContent helper with automatic multi-model fallback,
+ * timeout protection, and retry logic for high-demand spikes (503 / 429).
  */
 async function generateContentWithFallback(
   ai: GoogleGenAI,
@@ -60,11 +60,17 @@ async function generateContentWithFallback(
 
   for (const model of candidateModels) {
     try {
-      const response = await ai.models.generateContent({
+      const callPromise = ai.models.generateContent({
         model,
         contents: params.contents,
         config: params.config,
       });
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Timeout: ${model} took more than 6000ms`)), 6000)
+      );
+
+      const response: any = await Promise.race([callPromise, timeoutPromise]);
       if (response && response.text) {
         return { text: response.text, model };
       }
@@ -76,15 +82,16 @@ async function generateContentWithFallback(
         err?.message?.includes('503') ||
         err?.message?.includes('high demand') ||
         err?.message?.includes('429') ||
-        err?.message?.includes('RESOURCE_EXHAUSTED');
+        err?.message?.includes('RESOURCE_EXHAUSTED') ||
+        err?.message?.includes('Timeout');
 
       if (is503OrRateLimit) {
-        console.warn(`[Gemini AI] Model ${model} is experiencing high demand. Seamlessly attempting fallback model...`);
+        console.warn(`[Gemini AI] Model ${model} is experiencing high demand/timeout. Seamlessly attempting fallback model...`);
       } else {
         console.warn(`[Gemini AI] Request with model ${model} failed. Trying next candidate...`, err?.message || err);
       }
       // Brief jitter backoff
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, 250));
     }
   }
 
@@ -95,6 +102,9 @@ interface Farm {
   id: string;
   name: string;
   commitment_hash: string;
+  polygon_hash?: string;
+  polygon?: [number, number][];
+  polygon_coordinates?: [number, number][];
   crop_type: string;
   sowing_date: string;
   policy_id: string;
@@ -173,6 +183,9 @@ function initializeSeedData() {
           id: df.id,
           name: df.name,
           commitment_hash: commitmentHash,
+          polygon_hash: commitmentHash,
+          polygon: coords,
+          polygon_coordinates: coords,
           crop_type: df.crop_type,
           sowing_date: df.sowing_date,
           policy_id: df.policy_id,
@@ -346,6 +359,9 @@ app.post('/api/farms', (req, res) => {
     id: farmId,
     name: farmName,
     commitment_hash: commitmentHash,
+    polygon_hash: commitmentHash,
+    polygon: coordsForHash,
+    polygon_coordinates: coordsForHash,
     crop_type: farmData.crop_type || 'wheat',
     sowing_date: farmData.sowing_date || new Date().toISOString().split('T')[0],
     policy_id: farmData.policy_id || 'POLICY-001',

@@ -82,7 +82,7 @@ export default function LandingPage() {
               className="font-display-lg text-5xl sm:text-7xl md:text-8xl lg:text-[94px] lg:leading-[102px] font-black tracking-widest uppercase mb-4 glow-text"
               style={{ letterSpacing: '0.14em' }}
             >
-              AgriProf<span className="text-secondary-fixed">.AI</span>
+              AgriProof<span className="text-secondary-fixed">.AI</span>
             </motion.h1>
             
             <motion.p 
@@ -464,7 +464,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center md:items-start">
             <div className="flex items-center gap-2 mb-2">
               <Satellite className="h-5 w-5 text-primary" />
-              <span className="font-headline-lg text-xl font-extrabold text-white">AgriProf.AI</span>
+              <span className="font-headline-lg text-xl font-extrabold text-white">AgriProof.AI</span>
             </div>
             <span className="font-label-caps text-xs text-slate-400">
               Precision Orbit &amp; Zero-Knowledge Agricultural Insurance Engine

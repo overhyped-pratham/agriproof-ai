@@ -1,24 +1,19 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Activity, Map, AlertTriangle, ShieldCheck, CheckCircle, ArrowRight, Smartphone, Banknote } from 'lucide-react';
+import { Activity, Map, AlertTriangle, ShieldCheck, Satellite } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import RiskGauge from '../components/RiskGauge';
 import HistoricalVegetationHealthChart from '../components/HistoricalVegetationHealthChart';
 import WeatherRiskPanel from '../components/WeatherRiskPanel';
+import PipelineProgress from '../components/PipelineProgress';
 import AnalysisPipelineSnapshots from '../components/AnalysisPipelineSnapshots';
-import FarmMap from '../components/FarmMap';
 import LandSatelliteAnalysis from '../components/LandSatelliteAnalysis';
 import PrecisionSatelliteGISConsole from '../components/PrecisionSatelliteGISConsole';
 import FarmerAlertsDrawer from '../components/FarmerAlertsDrawer';
-import ClaimPayoutEstimator from '../components/ClaimPayoutEstimator';
 import LiveWeatherForecastWidget from '../components/LiveWeatherForecastWidget';
-import LiveSatelliteAnalysis from '../components/analysis/LiveSatelliteAnalysis';
-import VariabilityInsightsStudio from '../components/VariabilityInsightsStudio';
-import CropDamageAnalysisStudio from '../components/CropDamageAnalysisStudio';
 import { FarmAIExplainer } from '../components/FarmAIExplainer';
 import { useAnalysis } from '../hooks/useAnalysis';
-import { api, Farm, LandAnalysisResult, Claim, ClaimPayoutEstimate } from '../lib/api';
-import { offlineStorage } from '../lib/offlineStorage';
+import { api, Farm } from '../lib/api';
 import { OfflineStatusBanner } from '../components/OfflineStatusBanner';
 
 export default function DashboardPage() {
@@ -26,9 +21,6 @@ export default function DashboardPage() {
   const navigate    = useNavigate();
   const { analysis, loading, isFromCache, cachedTime, refetch } = useAnalysis(farmId);
   const [farm, setFarm] = useState<Farm | null>(null);
-  const [landAnalysis, setLandAnalysis] = useState<LandAnalysisResult | null>(null);
-  const [estimate, setEstimate] = useState<ClaimPayoutEstimate | null>(null);
-  const [existingClaim, setExistingClaim] = useState<Claim | null>(null);
   const [isGeneratingClaim, setIsGeneratingClaim] = useState(false);
   const [pipelineRunning, setPipelineRunning]     = useState(false);
 
@@ -36,27 +28,7 @@ export default function DashboardPage() {
     if (!farmId) return;
     api.farms.get(farmId)
       .then(res => setFarm(res.data))
-      .catch(err => {
-        console.error('[DashboardPage] Failed to fetch farm:', err);
-        const cachedFarm = offlineStorage.getFarm(farmId);
-        if (cachedFarm) {
-          setFarm(cachedFarm);
-        }
-      });
-    api.farms.getLandAnalysis(farmId)
-      .then(res => setLandAnalysis(res.data))
-      .catch(() => {});
-    api.claims.getEstimate(farmId)
-      .then(res => setEstimate(res.data))
-      .catch(() => {});
-    api.ledger.getChain()
-      .then(res => {
-        const matching = res.data.chain.filter(c => c.farm_id === farmId);
-        if (matching.length > 0) {
-          setExistingClaim(matching[matching.length - 1]);
-        }
-      })
-      .catch(() => {});
+      .catch(err => console.error('[DashboardPage] Failed to fetch farm:', err));
   }, [farmId]);
 
   // Show pipeline if there's no analysis yet and we're not in a loading state
@@ -71,24 +43,8 @@ export default function DashboardPage() {
   // Called by PipelineProgress when the WebSocket "done" message arrives
   const handlePipelineComplete = useCallback(async () => {
     await refetch();          // fetch fresh analysis from /api/farms/:id/analysis
-    if (farmId) {
-      api.farms.getLandAnalysis(farmId)
-        .then(res => setLandAnalysis(res.data))
-        .catch(() => {});
-    }
     setPipelineRunning(false);
-  }, [refetch, farmId]);
-
-  const handleRerun = async () => {
-    if (!farmId) return;
-    setPipelineRunning(true);
-    try {
-      await api.farms.analyze(farmId);
-      await refetch();
-    } catch (err) {
-      console.warn('[DashboardPage] Backend analyze error:', err);
-    }
-  };
+  }, [refetch]);
 
   const handleGenerateClaim = async () => {
     if (!farmId) return;
@@ -103,17 +59,15 @@ export default function DashboardPage() {
     }
   };
 
-  if (pipelineRunning) {
+  if (!analysis && pipelineRunning) {
     return (
-      <LiveSatelliteAnalysis
-        farmId={farmId!}
-        farm={farm}
-        onComplete={handlePipelineComplete}
-        onViewClaim={() => {
-          setPipelineRunning(false);
-          refetch();
-        }}
-      />
+      <div className="max-w-5xl mx-auto px-4 py-12">
+        <h1 className="text-3xl font-bold text-white mb-2">Running Farm Analysis</h1>
+        <p className="text-slate-400 mb-8">
+          Fetching satellite imagery, computing spectral indices, and running AI risk models…
+        </p>
+        <PipelineProgress farmId={farmId!} onComplete={handlePipelineComplete} />
+      </div>
     );
   }
 
@@ -125,193 +79,30 @@ export default function DashboardPage() {
     );
   }
 
-  const isEligible =
-    analysis.ndvi_drop_pct >= 30 ||
-    analysis.expected_loss_pct >= 25 ||
-    analysis.damage_probability >= 0.30 ||
-    analysis.risk_score >= 30 ||
-    analysis.risk_category !== 'LOW';
-
-  const healthScore = Math.round(
-    analysis.crop_health_score > 1 ? analysis.crop_health_score : analysis.crop_health_score * 100
-  );
-
-  const lossPct = (
-    analysis.expected_loss_pct > 1 ? analysis.expected_loss_pct : analysis.expected_loss_pct * 100
-  ).toFixed(1);
-
-  const ndviDropDisplay = (
-    analysis.ndvi_drop_pct > 1 ? analysis.ndvi_drop_pct : analysis.ndvi_drop_pct * 100
-  ).toFixed(1);
+  const isEligible  = (analysis.risk_score ?? 0) > 60 || analysis.claim_eligible;
+  const healthScore = Math.round((analysis.crop_health_score ?? (1 - (analysis.damage_probability ?? analysis.damage_prob ?? 0.3))) * 100);
 
   return (
-    <div className="min-h-screen bg-black/95 text-white">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8 font-sans">
-      {/* ── Top Greeting & Status ────────────────────────────────────────── */}
-      <section className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Top Title Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Sentinel-2 · Live Telemetry Active</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono text-slate-400 bg-dark-800 border border-dark-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary-400" />
-              {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })} · Kharif 2025-26 Season
-            </div>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 17 ? 'Good Afternoon' : 'Good Evening'}, {farm?.name || 'Farmer'} 👋
-          </h2>
-          <p className="text-sm text-slate-400 mt-1">
-            Latest Earth Observation multi-spectral update from your fields · Last pass: <strong className="text-primary-300">22 Aug 2026, 05:47 UTC</strong>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            {farm?.name || 'Farm Dashboard'}
+            <span className="px-3 py-1 bg-dark-800 text-slate-400 text-sm rounded-full font-mono font-normal border border-dark-700">
+              ID: {farmId}
+            </span>
+          </h1>
+          <p className="text-slate-400 mt-2">
+            Real-time multi-spectral analysis, satellite land snapshots, and insurance eligibility overview.
           </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleRerun}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all font-semibold text-xs shadow-sm active:scale-95 cursor-pointer"
-          >
-            <Activity className="w-4 h-4" />
-            <span>Re-Run Analysis</span>
-          </button>
-          <Link
-            to={`/dashboard/${farmId}/satellite`}
-            className="bg-dark-800 hover:bg-dark-700 border border-dark-600 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors text-xs font-semibold shadow-sm"
-          >
-            <Map className="w-4 h-4 text-emerald-400" />
-            <span>Satellite View</span>
-          </Link>
-        </div>
-      </section>
-
-      {/* ── Direct Farmer Payout & Settlement Notice ─────────────────────── */}
-      {(existingClaim || isEligible) && (
-        <div className="bg-gradient-to-r from-emerald-950/70 via-dark-850 to-primary-950/60 rounded-2xl border-2 border-emerald-500/40 p-5 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-          
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500 text-dark-950 flex items-center gap-1 shadow-sm">
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  <span>DIRECT BENEFIT TRANSFER (DBT) READY</span>
-                </span>
-                <span className="text-xs text-emerald-300 font-mono flex items-center gap-1">
-                  <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Kisan SMS Sent to Farmer Handset</span>
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <span>Parametric Claim Settlement:</span>
-                <span className="text-emerald-400 font-mono text-xl">
-                  ₹{(estimate?.estimated_payout_amount || (farm?.area_hectares ? Math.round(farm.area_hectares * 50000 * 0.75) : 58400)).toLocaleString('en-IN')}
-                </span>
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-                Automatic payout approved for <strong>{farm?.name || 'Your Farm'}</strong> ({farm?.crop_type || 'Wheat'} · {farm?.area_hectares ? `${farm.area_hectares.toFixed(2)} Ha` : '0.50 Ha'}) via Sentinel-2 multi-spectral telemetry. Disbursed directly to farmer account via Aadhaar Payment Bridge (APB) with zero surveyor delays.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={() => {
-                  if (existingClaim?.claim_id) {
-                    navigate(`/claim/${existingClaim.claim_id}`);
-                  } else {
-                    handleGenerateClaim();
-                  }
-                }}
-                className="bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-extrabold px-5 py-3 rounded-xl flex items-center gap-2 transition-all text-xs shadow-lg shadow-emerald-950/40 active:scale-95 cursor-pointer whitespace-nowrap"
-              >
-                <Banknote className="w-4 h-4" />
-                <span>{existingClaim ? 'View Official Bank Receipt' : 'Confirm & Claim Payout'}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Stitch Bento Grid Layout for Dashboard Widgets ────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-        {/* Soil Moisture Widget (Span 4 cols on desktop) */}
-        <div className="md:col-span-4 bg-white dark:bg-dark-800 rounded-[24px] shadow-[0_4px_16px_0_rgba(23,52,28,0.06)] dark:shadow-none border border-[#e3e3de] dark:border-dark-700 p-6 flex flex-col justify-between">
-          <div className="flex items-center gap-2 text-[#805533] dark:text-emerald-400">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-              water_drop
-            </span>
-            <h3 className="text-base font-bold text-[#1a1c19] dark:text-white">Avg Moisture</h3>
-          </div>
-          <div className="flex items-end justify-between mt-4">
-            <div>
-              <span className="text-4xl font-extrabold text-[#17341c] dark:text-emerald-400">
-                {landAnalysis?.soil_and_surface?.soil_moisture_vwc_pct
-                  ? `${Math.round(landAnalysis.soil_and_surface.soil_moisture_vwc_pct)}%`
-                  : `${Math.max(18, Math.min(85, Math.round(healthScore * 0.65)))}%`}
-              </span>
-              <span className="text-xs font-semibold text-[#424841] dark:text-slate-400 ml-2">
-                {landAnalysis?.soil_and_surface?.soil_moisture_status || (healthScore > 50 ? 'Optimal' : 'Needs Moisture')}
-              </span>
-            </div>
-            {/* CSS Gauge */}
-            <div className="relative w-16 h-16 rounded-full border-4 border-[#e8e8e3] dark:border-dark-700 flex items-center justify-center">
-              <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                <path
-                  className="text-[#2d4b31] dark:text-emerald-500 stroke-current"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  strokeDasharray={`${landAnalysis?.soil_and_surface?.soil_moisture_vwc_pct ? Math.round(landAnalysis.soil_and_surface.soil_moisture_vwc_pct) : Math.max(18, Math.min(85, Math.round(healthScore * 0.65)))}, 100`}
-                  strokeWidth="4"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Active Fields Summary (Span 8 cols on desktop) */}
-        <div className="md:col-span-8 bg-white dark:bg-dark-800 rounded-[24px] shadow-[0_4px_16px_0_rgba(23,52,28,0.06)] dark:shadow-none border border-[#e3e3de] dark:border-dark-700 p-6 flex flex-col justify-between">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-base font-bold text-[#1a1c19] dark:text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#17341c] dark:text-emerald-400" style={{ fontVariationSettings: "'FILL' 1" }}>
-                agriculture
-              </span>
-              <span>Active Field · {farm?.name}</span>
-            </h3>
-            <Link to="/farms" className="text-xs font-bold text-[#17341c] dark:text-emerald-400 hover:underline">
-              View All Fields
-            </Link>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center p-3 rounded-xl bg-[#fafaf4] dark:bg-dark-900 border border-[#e3e3de] dark:border-dark-700">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#e8e8e3] dark:bg-dark-800 overflow-hidden flex-shrink-0">
-                  <img
-                    className="w-full h-full object-cover"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBodK0H0tc2Rc29kcCH_Ew5os8t7qSi3HI7g-lhpBNsIrif9mWm3NvyD1-mF30pASRTRnUCfhmWq5Ax3uoW_W7K9N94Hqmi1_udW5px-K-CCmFa6ZZ0rRyvHIKP5CBDnFTwYgX2d6mvb_bYZIoVv_L5I7u5Lo0VWNGu8ugYsCNoBKDCNtYPb4i711SlnmoupoJLQcDE4FNyJn0-0F7oLTsHGevXGZuLCs2on2Z2h3o5PKylh6ECb-XDNA"
-                    alt="Active Field"
-                  />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-[#1a1c19] dark:text-white">{farm?.name}</h4>
-                  <p className="text-xs text-[#737971] capitalize">{farm?.crop_type} · {farm?.area_hectares.toFixed(1)} ha</p>
-                </div>
-              </div>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-bold font-mono flex items-center gap-1.5 ${
-                  healthScore > 60
-                    ? 'bg-[#c8ecc8] text-[#03210b] dark:bg-emerald-500/20 dark:text-emerald-300'
-                    : 'bg-[#ffdcc5] text-[#301400] dark:bg-amber-500/20 dark:text-amber-300'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-[#17341c] dark:bg-emerald-400 inline-block" />
-                <span>{healthScore > 60 ? 'Healthy' : 'Needs Irrigation'}</span>
-              </span>
-            </div>
-          </div>
-        </div>
+        <Link
+          to={`/dashboard/${farmId}/satellite`}
+          className="bg-dark-800 hover:bg-dark-700 border border-dark-600 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors font-medium text-sm shadow"
+        >
+          <Map className="w-4 h-4 text-primary-400" /> View High-Res Satellite Map
+        </Link>
       </div>
 
       {/* Offline Satellite Telemetry Cache Status Banner */}
@@ -321,41 +112,6 @@ export default function DashboardPage() {
         isLoading={loading}
         onRefresh={refetch}
       />
-
-      {/* Cryptographic Zero-Knowledge Evidence & Satellite Ground Truth Proof Card */}
-      <div className="bg-gradient-to-r from-primary-950/40 via-dark-900 to-dark-900 rounded-2xl border border-primary-500/30 p-4 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary-500/10 border border-primary-500/30 text-primary-400 shadow-[0_0_12px_rgba(0,163,255,0.2)]">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary-300">
-                Cryptographic Evidence Verified
-              </span>
-              <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">
-                Groth16 (BN128)
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 mt-1 font-mono">
-              Sentinel-2 L2A Reflectance + Polygon Geodesic Commitment: <code className="text-primary-300">{farm?.commitment_hash?.slice(0, 16) || farmId?.slice(0, 16)}...</code>
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 font-mono text-xs text-slate-400">
-          <div>
-            NDVI Drop: <strong className="text-red-400">-{ndviDropDisplay}%</strong>
-          </div>
-          <div>·</div>
-          <div>
-            Exp. Loss: <strong className="text-amber-400">{lossPct}%</strong>
-          </div>
-          <div>·</div>
-          <Link to="/ledger" className="text-primary-400 hover:text-primary-300 underline text-xs">
-            Inspect Ledger →
-          </Link>
-        </div>
-      </div>
 
       {/* Multi-Spectral Processing Pipeline Visual Snapshots (Reference Diagram Feature) */}
       <div className="bg-dark-800/90 rounded-2xl border border-dark-700 p-6 shadow-xl backdrop-blur">
@@ -368,11 +124,11 @@ export default function DashboardPage() {
           ndviCurrent={analysis.ndvi_current}
           ndviBaseline={analysis.ndvi_baseline}
           ndviDropPct={analysis.ndvi_drop_pct}
-          evi={analysis.evi_current}
-          ndwi={analysis.ndwi_current}
-          cloudCover={4.2}
-          damageProb={analysis.damage_probability}
-          riskCategory={analysis.risk_category}
+          evi={analysis.evi_current ?? analysis.evi}
+          ndwi={analysis.ndwi_current ?? analysis.ndwi}
+          cloudCover={analysis.cloud_cover_pct ?? 4.2}
+          damageProb={analysis.damage_probability ?? analysis.damage_prob}
+          riskCategory={analysis.risk_category || 'MODERATE'}
           allowDemoRun={true}
         />
       </div>
@@ -384,18 +140,18 @@ export default function DashboardPage() {
           value={`${healthScore}%`}
           icon={<Activity className="w-6 h-6" />}
           variant={healthScore > 70 ? 'green' : healthScore > 40 ? 'yellow' : 'red'}
-          trend={{ value: -parseFloat(ndviDropDisplay), label: 'vs baseline' }}
+          trend={{ value: -analysis.ndvi_drop_pct * 100, label: 'vs baseline' }}
         />
         <div className="bg-dark-800 rounded-xl border border-dark-700 p-6 flex flex-col items-center justify-center shadow-sm">
           <p className="text-sm font-medium text-slate-400 mb-2 w-full">Risk Assessment</p>
-          <RiskGauge score={analysis.risk_score} category={analysis.risk_category} label="Overall Risk" />
+          <RiskGauge score={analysis.risk_score ?? 50} category={analysis.risk_category || 'MODERATE'} label="Overall Risk" />
         </div>
         <StatCard
           title="Predicted Loss"
-          value={`${lossPct}%`}
-          subtitle={`Exp. Yield: ${analysis.expected_yield.toFixed(1)} tons/ha`}
+          value={`${((analysis.expected_loss_pct ?? (analysis.damage_prob ?? 0.35)) * 100).toFixed(1)}%`}
+          subtitle={`Exp. Yield: ${(analysis.expected_yield ?? 2.8).toFixed(1)} tons/ha`}
           icon={<AlertTriangle className="w-6 h-6" />}
-          variant={parseFloat(lossPct) > 20 ? 'red' : 'yellow'}
+          variant={(analysis.expected_loss_pct ?? 0.35) > 0.2 ? 'red' : 'yellow'}
         />
         <div className={`rounded-xl border p-6 flex flex-col justify-center shadow-sm ${isEligible ? 'bg-success/10 border-success/30' : 'bg-dark-800 border-dark-700'}`}>
           <div className="flex items-center gap-3 mb-2">
@@ -405,7 +161,7 @@ export default function DashboardPage() {
           <div className={`text-2xl font-black mt-2 ${isEligible ? 'text-success' : 'text-slate-400'}`}>
             {isEligible ? 'LIKELY ELIGIBLE' : 'NOT ELIGIBLE'}
           </div>
-          <p className="text-sm text-slate-400 mt-2">Parametric trigger threshold met for policy payout.</p>
+          <p className="text-sm text-slate-400 mt-2">Based on current algorithmic assessment.</p>
         </div>
       </div>
 
@@ -422,55 +178,11 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* ── Farmer Agricultural Field Map & Sentinel-2 Intelligence ── */}
-      {farm && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                <Map className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white font-sans flex items-center gap-2">
-                  Agricultural Field Map &amp; Cadastral Boundary
-                </h3>
-                <p className="text-xs text-slate-400 font-sans">
-                  Real-time GPS parcel boundary, live farmer device location, and multi-spectral satellite overlays
-                </p>
-              </div>
-            </div>
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-primary-500/10 text-primary-400 border border-primary-500/30">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Sentinel-2 (10m) Active
-            </span>
-          </div>
-
-          <div className="h-[500px] w-full rounded-2xl overflow-hidden shadow-2xl border border-dark-700/80">
-            <FarmMap
-              farmId={farmId}
-              farmName={farm.name}
-              cropType={farm.crop_type}
-              areaHectares={farm.area_hectares}
-              centerLat={farm.center_lat}
-              centerLon={farm.center_lon}
-              analysis={analysis}
-              damageSeverity={analysis.expected_loss_pct > 25 ? 'HIGH' : 'LOW'}
-              showDamageOverlay={false}
-              showTelemetryBar={true}
-              allowDraw={true}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Satellite Land Surface & Crop Canopy Analysis Section */}
       {farmId && <LandSatelliteAnalysis farmId={farmId} />}
 
       {/* Actionable Agronomy & Low-Bandwidth Alerts Drawer */}
       {farmId && <FarmerAlertsDrawer farmId={farmId} />}
-
-      {/* Insurance Claim & Payout Estimation Module */}
-      {farmId && <ClaimPayoutEstimator farmId={farmId} />}
 
       {/* Real-time Open-Meteo Weather Forecast & Agricultural Climate Ingest */}
       <LiveWeatherForecastWidget
@@ -478,21 +190,6 @@ export default function DashboardPage() {
         lon={farm?.center_lon || -119.4179}
         farmName={farm?.name || 'Registered Farm Basin'}
         cropType={farm?.crop_type || 'Agricultural Crop'}
-      />
-
-      {/* OneSoil-Inspired High-Resolution Satellite Variability & 3D Productivity Zone Studio */}
-      {farmId && (
-        <VariabilityInsightsStudio
-          farmId={farmId}
-          farm={farm}
-          analysis={analysis}
-        />
-      )}
-
-      {/* Comprehensive Crop Damage Analysis Studio & 6 Peril Matrix */}
-      <CropDamageAnalysisStudio
-        farm={farm}
-        analysis={analysis}
       />
 
       {/* Precision GIS Multi-Spectral Satellite Intelligence Studio (Sentinel Hub / EOS Crop Monitoring) */}
@@ -516,61 +213,45 @@ export default function DashboardPage() {
         cropType={farm?.crop_type || 'Crop'}
         farmName={farm?.name || 'Farm Parcel'}
         stressThreshold={0.30}
-        currentDropPct={parseFloat(ndviDropDisplay)}
+        currentDropPct={analysis.ndvi_drop_pct * 100}
       />
 
-      {/* ── Bottom Grid: Peril Impact Scorecard + ZK Claim ──────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Peril Scorecard */}
-        <div className="lg:col-span-2 bg-dark-800 rounded-2xl border border-dark-700 p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-400" /> Parametric Peril Scorecard
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Key contributing factors to crop stress &amp; payout eligibility · Kharif 2026</p>
-            </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold ${isEligible ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-dark-700 text-slate-400 border border-dark-600'}`}>
-              {isEligible ? '⚡ Trigger Ready' : 'Below Threshold'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-dark-900 rounded-xl p-4 border border-dark-700">
-              <p className="text-[11px] text-slate-500 font-mono uppercase tracking-wider">Stress Level</p>
-              <p className="text-xl font-black text-white capitalize mt-1">{analysis.stress_level.replace('_', ' ')}</p>
-              <p className="text-xs text-slate-400 mt-1">Sensor-confirmed crop condition</p>
-            </div>
-            <div className="bg-dark-900 rounded-xl p-4 border border-dark-700">
-              <p className="text-[11px] text-slate-500 font-mono uppercase tracking-wider">Damage Probability</p>
-              <p className={`text-xl font-black mt-1 ${analysis.damage_probability > 0.5 ? 'text-rose-400' : 'text-amber-400'}`}>
-                {(analysis.damage_probability > 1 ? analysis.damage_probability : analysis.damage_probability * 100).toFixed(1)}%
-              </p>
-              <p className="text-xs text-slate-400 mt-1">ML Groth16 regressor confidence</p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Key Peril Factors</p>
-            {[
-              { label: 'NDVI Vegetation Drop', width: Math.min(parseFloat(ndviDropDisplay) * 2, 100), color: 'bg-red-500', value: `-${ndviDropDisplay}%` },
-              { label: 'Rainfall Anomaly', width: Math.min(Math.abs(analysis.rainfall_anomaly_pct), 100), color: 'bg-amber-500', value: `${analysis.rainfall_anomaly_pct.toFixed(1)}%` },
-              { label: 'Heat Stress Index', width: Math.min(analysis.heat_stress_score > 1 ? analysis.heat_stress_score : analysis.heat_stress_score * 100, 100), color: 'bg-orange-500', value: `${(analysis.heat_stress_score > 1 ? analysis.heat_stress_score : analysis.heat_stress_score * 100).toFixed(0)}%` },
-              { label: 'Drought Risk', width: Math.min((analysis.drought_risk ?? 0) > 1 ? analysis.drought_risk : (analysis.drought_risk ?? 0) * 100, 100), color: 'bg-yellow-500', value: `${((analysis.drought_risk ?? 0) > 1 ? analysis.drought_risk : (analysis.drought_risk ?? 0) * 100).toFixed(0)}%` },
-            ].map(({ label, width, color, value }) => (
-              <div key={label} className="flex items-center gap-4">
-                <span className="w-40 text-sm text-slate-300 shrink-0">{label}</span>
-                <div className="flex-1 h-2 bg-dark-900 rounded-full overflow-hidden">
-                  <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${width}%` }} />
-                </div>
-                <span className="text-xs font-mono font-bold text-slate-300 w-12 text-right">{value}</span>
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-dark-800 rounded-xl border border-dark-700 p-6 shadow-md">
+            <h3 className="text-lg font-semibold text-white mb-4">Damage Analysis (Feature Impact)</h3>
+            <div className="grid grid-cols-2 gap-8">
+              <div>
+                <p className="text-sm text-slate-400 mb-1">Stress Level</p>
+                <p className="text-xl font-bold text-white capitalize">{(analysis.stress_level || 'MODERATE').replace('_', ' ')}</p>
               </div>
-            ))}
+              <div>
+                <p className="text-sm text-slate-400 mb-1">Damage Probability</p>
+                <p className="text-xl font-bold text-warning">{(((analysis.damage_probability ?? analysis.damage_prob) || 0) * 100).toFixed(1)}%</p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              <p className="text-sm text-slate-400 font-medium">Key Contributing Factors:</p>
+              {[
+                { label: 'NDVI Drop',        width: Math.min((analysis.ndvi_drop_pct || 0) * 2, 100), color: 'bg-danger' },
+                { label: 'Rainfall Anomaly', width: Math.min(Math.abs(analysis.rainfall_anomaly_pct || 0), 100), color: 'bg-warning' },
+                { label: 'Heat Stress',      width: (analysis.heat_stress_score || 0) * 100, color: 'bg-orange-500' },
+              ].map(({ label, width, color }) => (
+                <div key={label} className="flex items-center gap-4">
+                  <span className="w-36 text-sm text-slate-300">{label}</span>
+                  <div className="flex-1 h-2 bg-dark-900 rounded-full">
+                    <div className={`h-full ${color} rounded-full`} style={{ width: `${width}%` }} />
+                  </div>
+                  <span className="text-xs text-slate-500 w-10 text-right">{width.toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Right: ZK Claim Generation */}
-        <div className="space-y-4">
+        <div className="space-y-8">
           <WeatherRiskPanel
             drought_risk={analysis.drought_risk}
             flood_risk={analysis.flood_risk}
@@ -579,56 +260,29 @@ export default function DashboardPage() {
             rainfall_anomaly_pct={analysis.rainfall_anomaly_pct}
           />
 
-            <div className={`bg-dark-800 rounded-2xl border p-6 shadow-xl relative overflow-hidden ${isEligible ? 'border-emerald-500/30' : 'border-dark-700'}`}>
-            {isEligible && <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-primary-400" />}
-            <div className="flex items-start gap-3 mb-3">
-              <div className={`p-2.5 rounded-xl ${isEligible ? 'bg-emerald-500/15 text-emerald-400' : 'bg-dark-700 text-slate-500'}`}>
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Privacy Claim (ZKP)</h3>
-                <p className="text-xs text-slate-400">100% Private · Satellite Verified</p>
-              </div>
-            </div>
-
-            <p className="text-slate-300 text-xs mb-3.5 leading-relaxed">
-              Proves genuine crop damage to the insurer for <strong className="text-emerald-400">instant automated payout</strong> while keeping your exact location, yield history, and financial data 100% private.
+          <div className="bg-dark-800 rounded-xl border border-dark-700 p-6 shadow-md relative overflow-hidden">
+            {isEligible && <div className="absolute top-0 left-0 w-full h-1 bg-success" />}
+            <h3 className="text-lg font-semibold text-white mb-4">Claim Generation</h3>
+            <p className="text-slate-400 text-sm mb-6">
+              Generate a Zero-Knowledge proof of crop damage cryptographically verifying the satellite and AI findings.
             </p>
-
-            <div className="bg-dark-900 rounded-xl p-3 mb-4 border border-dark-700 font-mono text-xs space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Vegetation Drop</span>
-                <span className={`font-bold ${parseFloat(ndviDropDisplay) >= 30 ? 'text-emerald-400' : 'text-slate-300'}`}>-{ndviDropDisplay}% {parseFloat(ndviDropDisplay) >= 30 ? '✓' : ''}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Expected Loss</span>
-                <span className="text-white font-bold">{lossPct}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Payout Status</span>
-                <span className={`font-bold ${isEligible ? 'text-emerald-400' : 'text-rose-400'}`}>{isEligible ? 'Eligible for Payout ✓' : 'Below Policy Trigger'}</span>
-              </div>
-            </div>
-
             <button
               onClick={handleGenerateClaim}
               disabled={!isEligible || isGeneratingClaim}
-              className={`w-full py-3 rounded-xl font-bold text-sm text-white shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
+              className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all ${
                 isEligible
-                  ? 'bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-900/30'
+                  ? 'bg-primary-600 hover:bg-primary-500 hover:shadow-primary-600/20'
                   : 'bg-dark-700 text-slate-500 cursor-not-allowed'
               }`}
             >
-              <ShieldCheck className="w-4 h-4" />
-              <span>{isGeneratingClaim ? 'Generating Privacy Proof…' : 'Generate Privacy Proof & Claim'}</span>
+              {isGeneratingClaim ? 'Generating Proof…' : 'Generate ZK Proof & Claim'}
             </button>
             {!isEligible && (
-              <p className="text-xs text-center text-slate-500 mt-2">Parametric threshold not yet met.</p>
+              <p className="text-xs text-center text-slate-500 mt-3">Criteria for claim not met.</p>
             )}
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }
