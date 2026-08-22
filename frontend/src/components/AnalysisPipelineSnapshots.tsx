@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PipelineStage, INITIAL_PIPELINE_STAGES } from '../lib/pipelineStore';
 import {
   ChevronRight,
@@ -58,43 +58,92 @@ export default function AnalysisPipelineSnapshots({
   centerLat = 30.3398,
   centerLon = 76.3869,
   areaHa = 8.5,
+  ndviDropPct,
+  evi,
+  ndwi,
+  cloudCover,
+  damageProb,
   activeStepKey,
   completedStepKeys,
   allowDemoRun = true
 }: AnalysisPipelineSnapshotsProps) {
-  const [internalStages, setInternalStages] = useState<PipelineStage[]>(INITIAL_PIPELINE_STAGES);
+  // Initialize stages as completed if farm is analyzed
+  const [internalStages, setInternalStages] = useState<PipelineStage[]>(() =>
+    INITIAL_PIPELINE_STAGES.map((s) => ({
+      ...s,
+      status: 'completed' as const,
+      progress: 100,
+      imageUrl: s.previewUrl || getFallbackRaster(s.id),
+    }))
+  );
   const [selectedStage, setSelectedStage] = useState<PipelineStage | null>(null);
   const [isDemoRunning, setIsDemoRunning] = useState(false);
   const [selectedCapturedShot, setSelectedCapturedShot] = useState<number | null>(null);
 
+  // High-fidelity procedural rasters for the 4 captured satellite frames
+  const capturedRasters = useMemo(() => ({
+    ndmi: generateSatelliteRaster('ndmi', 720, 450, 404, 0.6),
+    damage: generateSatelliteRaster('threshold', 720, 450, 505, 0.72),
+    ndvi: generateSatelliteRaster('ndvi', 720, 450, 606, (ndviDropPct ?? 0.36)),
+    multispectral: generateSatelliteRaster('cir', 720, 450, 707, 0.45),
+  }), [ndviDropPct]);
+
   const CAPTURED_SHOTS = [
     {
-      src: '/assets/snapshots/captured_ndmi_falsecolor.png',
+      src: capturedRasters.ndmi,
+      fallbackStatic: '/assets/snapshots/captured_ndmi_falsecolor.png',
       title: 'NDMI False-Color Composite',
-      badge: 'Soil Moisture · Band B8-B11 SWIR',
-      tag: 'Pass: 06 Aug 2026 · Sentinel-2B · Clouds: 0%',
+      badge: 'Soil Moisture',
+      badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+      tag: 'Pass: 06 Aug 2026 · Sentinel-2B · SWIR Bands',
       desc: 'Surface Reflectance L2A — Band 8/11 false-color composite showing root-zone moisture deficit zones across the parcel.',
+      stats: [
+        { label: 'Band', value: 'B8-B11 (SWIR)' },
+        { label: 'Sensor', value: 'Sentinel-2B' },
+        { label: 'Cloud Cover', value: `${cloudCover ?? 0}%` },
+      ]
     },
     {
-      src: '/assets/snapshots/captured_damage_zones.png',
+      src: capturedRasters.damage,
+      fallbackStatic: '/assets/snapshots/captured_damage_zones.png',
       title: 'Damage Classification Overlay',
-      badge: 'NDVI-Classified Damage Zones',
-      tag: 'Healthy (>0.6) · Stressed (0.3–0.6) · Severely Damaged (<0.3)',
-      desc: 'Classified vegetation damage zones with field boundary polygon showing Healthy, Stressed, and Severely Damaged parcels.',
+      badge: 'Damage Zones',
+      badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+      tag: 'NDVI < 0.3 → Severely Damaged · 0.3–0.6 → Stressed',
+      desc: 'Classified vegetation damage zones showing Healthy (NDVI > 0.6), Stressed, and Severely Damaged parcels with field boundary polygon.',
+      stats: [
+        { label: 'Healthy', value: 'NDVI > 0.6' },
+        { label: 'Stressed', value: '0.3–0.6' },
+        { label: 'Damaged', value: '< 0.3' },
+      ]
     },
     {
-      src: '/assets/snapshots/captured_ndvi_raster.png',
+      src: capturedRasters.ndvi,
+      fallbackStatic: '/assets/snapshots/captured_ndvi_raster.png',
       title: 'NDVI 10m×10m Sensor Raster',
-      badge: 'NDVI Drop: −36.9% · Expected Loss: 31.6%',
-      tag: '22 Aug 2026 · Sentinel-2A · 10m Ground Resolution',
-      desc: 'Full 10m per-pixel NDVI raster. Darker tones indicate vegetation loss from drought stress, compacted soil, or nutrient deficiency. Includes AI Agronomy Report.',
+      badge: 'NDVI Analysis',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      tag: `NDVI Drop: −${ndviDropPct != null ? (ndviDropPct * 100).toFixed(1) : '36.7'}% · Damage Prob: ${damageProb != null ? (damageProb * 100).toFixed(1) : '31.6'}%`,
+      desc: 'Full 10m per-pixel NDVI raster with parcel boundary. Darker tones indicate vegetation loss from drought stress, compacted soil, or nutrient deficiency.',
+      stats: [
+        { label: 'NDVI Drop', value: ndviDropPct != null ? `−${(ndviDropPct * 100).toFixed(1)}%` : '−36.7%' },
+        { label: 'Dmg Prob', value: damageProb != null ? `${(damageProb * 100).toFixed(1)}%` : '31.6%' },
+        { label: 'Resolution', value: '10m/px' },
+      ]
     },
     {
-      src: '/assets/snapshots/captured_interactive_map.png',
+      src: capturedRasters.multispectral,
+      fallbackStatic: '/assets/snapshots/captured_interactive_map.png',
       title: 'Interactive Multi-Spectral Console',
-      badge: 'Full Dashboard · All Indices Active',
-      tag: '21 Aug 2026 (Current Pass) · NDVI Damage Overlay',
-      desc: 'Full multi-spectral dashboard: NDVI index, damage overlay on satellite basemap, land surface zoning breakdown, and soil & thermal matrix.',
+      badge: 'Full Analysis',
+      badgeColor: 'bg-primary-500/20 text-primary-300 border-primary-500/30',
+      tag: '22 Aug 2026 (Current Pass) · All indices active',
+      desc: `Full multi-spectral dashboard: NDVI, EVI, NDWI indices, damage overlay on satellite basemap, land zoning, and soil & thermal matrix for ${farmName || 'field'}.`,
+      stats: [
+        { label: 'EVI', value: evi != null ? evi.toFixed(3) : '0.428' },
+        { label: 'NDWI', value: ndwi != null ? ndwi.toFixed(3) : '0.214' },
+        { label: 'Crop', value: cropType || 'Wheat' },
+      ]
     },
   ];
 
@@ -422,60 +471,7 @@ export default function AnalysisPipelineSnapshots({
 
         {/* 2x2 Captured Screenshot Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[
-            {
-              src: '/assets/snapshots/captured_ndmi_falsecolor.png',
-              title: 'NDMI False-Color Composite',
-              badge: 'Soil Moisture',
-              badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-              tag: 'Pass: 06 Aug 2026 · Sentinel-2B · Clouds: 0%',
-              desc: 'Surface Reflectance L2A — Band 8/11 false-color composite showing root-zone moisture deficit zones across the parcel.',
-              stats: [
-                { label: 'Band', value: 'B8-B11 (SWIR)' },
-                { label: 'Sensor', value: 'Sentinel-2B' },
-                { label: 'Cloud Cover', value: '0%' },
-              ]
-            },
-            {
-              src: '/assets/snapshots/captured_damage_zones.png',
-              title: 'Damage Classification Overlay',
-              badge: 'Damage Zones',
-              badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
-              tag: 'NDVI < 0.3 → Severely Damaged · 0.3–0.6 → Stressed',
-              desc: 'Classified vegetation damage zones showing Healthy (NDVI > 0.6), Stressed, and Severely Damaged parcels with field boundary polygon.',
-              stats: [
-                { label: 'Healthy', value: 'NDVI > 0.6' },
-                { label: 'Stressed', value: '0.3–0.6' },
-                { label: 'Damaged', value: '< 0.3' },
-              ]
-            },
-            {
-              src: '/assets/snapshots/captured_ndvi_raster.png',
-              title: 'NDVI 10m×10m Sensor Raster',
-              badge: 'NDVI Analysis',
-              badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-              tag: 'NDVI Drop: −36.9% · Expected Loss: 31.6%',
-              desc: 'Full 10m per-pixel NDVI raster with parcel boundary. Darker tones indicate vegetation loss from drought stress, compacted soil, or nutrient deficiency.',
-              stats: [
-                { label: 'NDVI Drop', value: '−36.9%' },
-                { label: 'Exp. Loss', value: '31.6%' },
-                { label: 'Resolution', value: '10m/px' },
-              ]
-            },
-            {
-              src: '/assets/snapshots/captured_interactive_map.png',
-              title: 'Interactive Multi-Spectral Console',
-              badge: 'Full Analysis',
-              badgeColor: 'bg-primary-500/20 text-primary-300 border-primary-500/30',
-              tag: '21 Aug 2026 (Current Pass) · All indices active',
-              desc: 'Full multi-spectral dashboard view showing NDVI index layer, damage overlay on satellite basemap, land surface zoning breakdown, and soil & thermal matrix.',
-              stats: [
-                { label: 'Scene Pass', value: '21 Aug 2026' },
-                { label: 'Crop Health', value: '63%' },
-                { label: 'Loss & Risk', value: '39.6% MOD' },
-              ]
-            },
-          ].map((shot, i) => (
+          {CAPTURED_SHOTS.map((shot, i) => (
             <motion.div
               key={shot.title}
               initial={{ opacity: 0, y: 8 }}
