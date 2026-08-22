@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Activity, Map, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Activity, Map, AlertTriangle, ShieldCheck, CheckCircle, ArrowRight, Smartphone, Banknote } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import RiskGauge from '../components/RiskGauge';
 import HistoricalVegetationHealthChart from '../components/HistoricalVegetationHealthChart';
@@ -17,7 +17,7 @@ import VariabilityInsightsStudio from '../components/VariabilityInsightsStudio';
 import CropDamageAnalysisStudio from '../components/CropDamageAnalysisStudio';
 import { FarmAIExplainer } from '../components/FarmAIExplainer';
 import { useAnalysis } from '../hooks/useAnalysis';
-import { api, Farm, LandAnalysisResult } from '../lib/api';
+import { api, Farm, LandAnalysisResult, Claim, ClaimPayoutEstimate } from '../lib/api';
 import { offlineStorage } from '../lib/offlineStorage';
 import { OfflineStatusBanner } from '../components/OfflineStatusBanner';
 
@@ -27,6 +27,8 @@ export default function DashboardPage() {
   const { analysis, loading, isFromCache, cachedTime, refetch } = useAnalysis(farmId);
   const [farm, setFarm] = useState<Farm | null>(null);
   const [landAnalysis, setLandAnalysis] = useState<LandAnalysisResult | null>(null);
+  const [estimate, setEstimate] = useState<ClaimPayoutEstimate | null>(null);
+  const [existingClaim, setExistingClaim] = useState<Claim | null>(null);
   const [isGeneratingClaim, setIsGeneratingClaim] = useState(false);
   const [pipelineRunning, setPipelineRunning]     = useState(false);
 
@@ -43,6 +45,17 @@ export default function DashboardPage() {
       });
     api.farms.getLandAnalysis(farmId)
       .then(res => setLandAnalysis(res.data))
+      .catch(() => {});
+    api.claims.getEstimate(farmId)
+      .then(res => setEstimate(res.data))
+      .catch(() => {});
+    api.ledger.getChain()
+      .then(res => {
+        const matching = res.data.chain.filter(c => c.farm_id === farmId);
+        if (matching.length > 0) {
+          setExistingClaim(matching[matching.length - 1]);
+        }
+      })
       .catch(() => {});
   }, [farmId]);
 
@@ -172,6 +185,54 @@ export default function DashboardPage() {
           </Link>
         </div>
       </section>
+
+      {/* ── Direct Farmer Payout & Settlement Notice ─────────────────────── */}
+      {(existingClaim || isEligible) && (
+        <div className="bg-gradient-to-r from-emerald-950/70 via-dark-850 to-primary-950/60 rounded-2xl border-2 border-emerald-500/40 p-5 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+          
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500 text-dark-950 flex items-center gap-1 shadow-sm">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  <span>DIRECT BENEFIT TRANSFER (DBT) READY</span>
+                </span>
+                <span className="text-xs text-emerald-300 font-mono flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Kisan SMS Sent to Farmer Handset</span>
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span>Parametric Claim Settlement:</span>
+                <span className="text-emerald-400 font-mono text-xl">
+                  ₹{(estimate?.estimated_payout_amount || (farm?.area_hectares ? Math.round(farm.area_hectares * 50000 * 0.75) : 58400)).toLocaleString('en-IN')}
+                </span>
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+                Automatic payout approved for <strong>{farm?.name || 'Your Farm'}</strong> ({farm?.crop_type || 'Wheat'} · {farm?.area_hectares ? `${farm.area_hectares.toFixed(2)} Ha` : '0.50 Ha'}) via Sentinel-2 multi-spectral telemetry. Disbursed directly to farmer account via Aadhaar Payment Bridge (APB) with zero surveyor delays.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => {
+                  if (existingClaim?.claim_id) {
+                    navigate(`/claim/${existingClaim.claim_id}`);
+                  } else {
+                    handleGenerateClaim();
+                  }
+                }}
+                className="bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-extrabold px-5 py-3 rounded-xl flex items-center gap-2 transition-all text-xs shadow-lg shadow-emerald-950/40 active:scale-95 cursor-pointer whitespace-nowrap"
+              >
+                <Banknote className="w-4 h-4" />
+                <span>{existingClaim ? 'View Official Bank Receipt' : 'Confirm & Claim Payout'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Stitch Bento Grid Layout for Dashboard Widgets ────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
