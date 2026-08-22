@@ -18,6 +18,7 @@ import CropDamageAnalysisStudio from '../components/CropDamageAnalysisStudio';
 import { FarmAIExplainer } from '../components/FarmAIExplainer';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { api, Farm, LandAnalysisResult } from '../lib/api';
+import { offlineStorage } from '../lib/offlineStorage';
 import { OfflineStatusBanner } from '../components/OfflineStatusBanner';
 
 export default function DashboardPage() {
@@ -33,7 +34,13 @@ export default function DashboardPage() {
     if (!farmId) return;
     api.farms.get(farmId)
       .then(res => setFarm(res.data))
-      .catch(err => console.error('[DashboardPage] Failed to fetch farm:', err));
+      .catch(err => {
+        console.error('[DashboardPage] Failed to fetch farm:', err);
+        const cachedFarm = offlineStorage.getFarm(farmId);
+        if (cachedFarm) {
+          setFarm(cachedFarm);
+        }
+      });
     api.farms.getLandAnalysis(farmId)
       .then(res => setLandAnalysis(res.data))
       .catch(() => {});
