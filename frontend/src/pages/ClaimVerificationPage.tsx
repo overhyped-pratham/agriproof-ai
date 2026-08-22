@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, Claim, Farm, VerificationResult } from '../lib/api';
 import ZKProofCard from '../components/ZKProofCard';
-import { Copy, FileJson, RefreshCw, Hash, Database, ShieldCheck, ShieldX, Printer, CheckCircle, Award, Satellite, Sparkles, Bot, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Copy, FileJson, RefreshCw, Hash, Database, ShieldCheck, ShieldX, Printer, CheckCircle, Award, Satellite, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 export default function ClaimVerificationPage() {
@@ -45,7 +45,6 @@ export default function ClaimVerificationPage() {
         valid: false,
         claim_id: claimId,
         farm_id: claim?.farm_id || '',
-        payout_amount: claim?.payout_amount || 0,
         block_hash: '',
         payout_eligible: false,
         zk_proof_valid: false,

@@ -230,7 +230,7 @@ export default function FarmsListPage() {
                     <p className="text-xs text-slate-500 font-mono mt-1 truncate">
                       {farm.center_lat != null && farm.center_lon != null 
                         ? `${farm.center_lat.toFixed(4)}°N, ${farm.center_lon.toFixed(4)}°E` 
-                        : 'Coordinates calibrated'} · {(farm.commitment_hash || farm.polygon_hash || '').substring(0, 16)}…
+                        : 'Coordinates calibrated'} · {(farm.commitment_hash || '').substring(0, 16)}…
                     </p>
                   </Link>
 

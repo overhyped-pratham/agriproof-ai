@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Activity, Map, AlertTriangle, ShieldCheck, Satellite } from 'lucide-react';
+import { Activity, Map, AlertTriangle, ShieldCheck } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import RiskGauge from '../components/RiskGauge';
 import HistoricalVegetationHealthChart from '../components/HistoricalVegetationHealthChart';
@@ -79,8 +79,8 @@ export default function DashboardPage() {
     );
   }
 
-  const isEligible  = (analysis.risk_score ?? 0) > 60 || analysis.claim_eligible;
-  const healthScore = Math.round((analysis.crop_health_score ?? (1 - (analysis.damage_probability ?? analysis.damage_prob ?? 0.3))) * 100);
+  const isEligible  = (analysis.risk_score ?? 0) > 60 || (analysis.expected_loss_pct ?? 0) > 0.2;
+  const healthScore = Math.round((analysis.crop_health_score ?? (1 - (analysis.damage_probability ?? 0.3))) * 100);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -124,10 +124,10 @@ export default function DashboardPage() {
           ndviCurrent={analysis.ndvi_current}
           ndviBaseline={analysis.ndvi_baseline}
           ndviDropPct={analysis.ndvi_drop_pct}
-          evi={analysis.evi_current ?? analysis.evi}
-          ndwi={analysis.ndwi_current ?? analysis.ndwi}
-          cloudCover={analysis.cloud_cover_pct ?? 4.2}
-          damageProb={analysis.damage_probability ?? analysis.damage_prob}
+          evi={analysis.evi_current}
+          ndwi={analysis.ndwi_current}
+          cloudCover={4.2}
+          damageProb={analysis.damage_probability}
           riskCategory={analysis.risk_category || 'MODERATE'}
           allowDemoRun={true}
         />
@@ -148,7 +148,7 @@ export default function DashboardPage() {
         </div>
         <StatCard
           title="Predicted Loss"
-          value={`${((analysis.expected_loss_pct ?? (analysis.damage_prob ?? 0.35)) * 100).toFixed(1)}%`}
+          value={`${((analysis.expected_loss_pct ?? (analysis.damage_probability ?? 0.35)) * 100).toFixed(1)}%`}
           subtitle={`Exp. Yield: ${(analysis.expected_yield ?? 2.8).toFixed(1)} tons/ha`}
           icon={<AlertTriangle className="w-6 h-6" />}
           variant={(analysis.expected_loss_pct ?? 0.35) > 0.2 ? 'red' : 'yellow'}
@@ -228,7 +228,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-slate-400 mb-1">Damage Probability</p>
-                <p className="text-xl font-bold text-warning">{(((analysis.damage_probability ?? analysis.damage_prob) || 0) * 100).toFixed(1)}%</p>
+                <p className="text-xl font-bold text-warning">{(((analysis.damage_probability) || 0) * 100).toFixed(1)}%</p>
               </div>
             </div>
 
