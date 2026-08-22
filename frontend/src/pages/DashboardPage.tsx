@@ -518,47 +518,48 @@ export default function DashboardPage() {
             rainfall_anomaly_pct={analysis.rainfall_anomaly_pct}
           />
 
-          <div className={`bg-dark-800 rounded-2xl border p-6 shadow-xl relative overflow-hidden ${isEligible ? 'border-emerald-500/30' : 'border-dark-700'}`}>
+            <div className={`bg-dark-800 rounded-2xl border p-6 shadow-xl relative overflow-hidden ${isEligible ? 'border-emerald-500/30' : 'border-dark-700'}`}>
             {isEligible && <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-primary-400" />}
-            <div className="flex items-start gap-3 mb-4">
-              <div className={`p-2 rounded-xl ${isEligible ? 'bg-emerald-500/15 text-emerald-400' : 'bg-dark-700 text-slate-500'}`}>
+            <div className="flex items-start gap-3 mb-3">
+              <div className={`p-2.5 rounded-xl ${isEligible ? 'bg-emerald-500/15 text-emerald-400' : 'bg-dark-700 text-slate-500'}`}>
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">ZK Claim</h3>
-                <p className="text-xs text-slate-400">Satellite-verified cryptographic proof</p>
+                <h3 className="text-base font-bold text-white">Privacy Claim (ZKP)</h3>
+                <p className="text-xs text-slate-400">100% Private · Satellite Verified</p>
               </div>
             </div>
 
-            <p className="text-slate-400 text-xs mb-4 leading-relaxed">
-              Generate a <strong className="text-white">Groth16 ZK-SNARK</strong> proof cryptographically binding satellite NDVI evidence to your parametric policy trigger on the ledger.
+            <p className="text-slate-300 text-xs mb-3.5 leading-relaxed">
+              Proves genuine crop damage to the insurer for <strong className="text-emerald-400">instant automated payout</strong> while keeping your exact location, yield history, and financial data 100% private.
             </p>
 
             <div className="bg-dark-900 rounded-xl p-3 mb-4 border border-dark-700 font-mono text-xs space-y-1.5">
               <div className="flex justify-between">
-                <span className="text-slate-400">NDVI Drop</span>
+                <span className="text-slate-400">Vegetation Drop</span>
                 <span className={`font-bold ${parseFloat(ndviDropDisplay) >= 30 ? 'text-emerald-400' : 'text-slate-300'}`}>-{ndviDropDisplay}% {parseFloat(ndviDropDisplay) >= 30 ? '✓' : ''}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Loss Est.</span>
+                <span className="text-slate-400">Expected Loss</span>
                 <span className="text-white font-bold">{lossPct}%</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Threshold</span>
-                <span className={`font-bold ${isEligible ? 'text-emerald-400' : 'text-rose-400'}`}>{isEligible ? 'Met ✓' : 'Not Met'}</span>
+                <span className="text-slate-400">Payout Status</span>
+                <span className={`font-bold ${isEligible ? 'text-emerald-400' : 'text-rose-400'}`}>{isEligible ? 'Eligible for Payout ✓' : 'Below Policy Trigger'}</span>
               </div>
             </div>
 
             <button
               onClick={handleGenerateClaim}
               disabled={!isEligible || isGeneratingClaim}
-              className={`w-full py-3 rounded-xl font-bold text-sm text-white shadow-lg transition-all active:scale-95 ${
+              className={`w-full py-3 rounded-xl font-bold text-sm text-white shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${
                 isEligible
-                  ? 'bg-primary-600 hover:bg-primary-500 hover:shadow-primary-600/20'
+                  ? 'bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-900/30'
                   : 'bg-dark-700 text-slate-500 cursor-not-allowed'
               }`}
             >
-              {isGeneratingClaim ? '⏳ Generating Proof…' : '🔐 Generate ZK Proof & Claim'}
+              <ShieldCheck className="w-4 h-4" />
+              <span>{isGeneratingClaim ? 'Generating Privacy Proof…' : 'Generate Privacy Proof & Claim'}</span>
             </button>
             {!isEligible && (
               <p className="text-xs text-center text-slate-500 mt-2">Parametric threshold not yet met.</p>
